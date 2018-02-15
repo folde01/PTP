@@ -1,4 +1,6 @@
 from flask import Flask, render_template, url_for
+from ptp_sniffer import Sniffer
+from ptp_analyser import Analyser
 
 app = Flask(__name__)
 
@@ -25,18 +27,23 @@ def results():
 
 def start_capture():
     '''Starts capturing traffic involving the target device.'''
+    sniffer = Sniffer()
+    sniffer.start()
     log("start_capture(): traffic capture started")
+    return sniffer
 
 
-def stop_capture():
+def stop_capture(sniffer):
     '''Stops capturing traffic involving the target device.'''
+    sniffer.stop()
     log("stop_capture(): traffic capture stopped")
 
 
-def generate_analysis():
+def generate_analysis(sniffer):
     '''Analyses captured traffic involving the target device'''
-    log("analyse_captured_traffic(): analysed")
-    return "Dummy results"
+    analyser = Analyser(sniffer)
+    log("generate_analysis(): analysed")
+    return analyser.results() 
 
 
 def log(msg): 
