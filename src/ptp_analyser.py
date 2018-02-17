@@ -3,5 +3,5 @@ class Analyser:
     def __init__(self, sniffer):
         self._sniffer = sniffer
 
-    def results():
+    def results(self):
         pass
