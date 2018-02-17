@@ -3,8 +3,8 @@ from ptp_sniffer import Sniffer
 from ptp_analyser import Analyser
 
 app = Flask(__name__)
-
-sniffer = None
+sniffer = Sniffer() 
+analyser = Analyser(sniffer)
 
 @app.route('/index')
 def index():  
@@ -16,7 +16,7 @@ def index():
 def capture():
     '''Web page accessible via http://localhost/capture. Has 'stop capture and see results' button.'''
     global sniffer
-    sniffer = start_capture()
+    start_capture(sniffer)
     return render_template('capturing.html')
 
 
@@ -25,13 +25,12 @@ def results():
     '''Web page accessible via http://localhost/capture. Has results of capture, and a button to return to index page.'''
     global sniffer
     stop_capture(sniffer)
-    results = generate_analysis(sniffer)
+    results = generate_analysis(analyser)
     return render_template('results.html', results=results)
 
 
-def start_capture():
+def start_capture(sniffer):
     '''Starts capturing traffic involving the target device.'''
-    sniffer = Sniffer()
     sniffer.start()
     log("start_capture(): traffic capture started")
     return sniffer
@@ -43,9 +42,8 @@ def stop_capture(sniffer):
     log("stop_capture(): traffic capture stopped")
 
 
-def generate_analysis(sniffer):
+def generate_analysis(analyser):
     '''Analyses captured traffic involving the target device'''
-    analyser = Analyser(sniffer)
     log("generate_analysis(): analysed")
     return analyser.results()
 
