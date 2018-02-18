@@ -1,6 +1,8 @@
 import logging
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 from scapy.all import * 
+import threading
+
 
 class Sniffer:
 
@@ -10,7 +12,13 @@ class Sniffer:
 
 
     def start(self):
-        self._packets = sniff(stop_filter=self.stopfilter)
+        sniffer_thread = threading.Thread(target=self._run_sniffer_thread)
+        sniffer_thread.daemon = True
+        sniffer_thread.start()
+
+
+    def _run_sniffer_thread(self):
+        self._packets = sniff(filter='ip', stop_filter=self.stopfilter)
 
 
     def stopfilter(self, kill_packet):
