@@ -18,10 +18,10 @@ class Sniffer:
 
 
     def _run_sniffer_thread(self):
-        self._packets = sniff(filter='ip', stop_filter=self.stopfilter)
+        self._packets = sniff(filter='ip', stop_filter=self._stopfilter)
 
 
-    def stopfilter(self, kill_packet):
+    def _stopfilter(self, kill_packet):
         if kill_packet[IP].dst == '10.10.10.10':
             return True
         else:
