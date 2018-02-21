@@ -38,7 +38,7 @@ class Analyser:
             result = str(tcpStream.addr) + " -- bytes to client: " + str(tcpStream.client.count)
             self._results.append(result)
         elif tcpStream.nids_state in (nids.NIDS_TIMEOUT, nids.NIDS_CLOSE, nids.NIDS_RESET):
-            result = str(tcpStream.addr) + " -- bytes to server: " + str(tcpStream.server.count)
+            result = str(tcpStream.addr) + " -- TOTAL bytes to server: " + str(tcpStream.server.count)
             self._results.append(result)
-            result = str(tcpStream.addr) + " -- bytes to client: " + str(tcpStream.client.count)
+            result = str(tcpStream.addr) + " -- TOTAL bytes to client: " + str(tcpStream.client.count)
             self._results.append(result)
