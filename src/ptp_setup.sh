@@ -7,6 +7,9 @@
 sudo apt-get update
 sudo apt-get -y dist-upgrade
 sudo apt-get -y install virtualbox-guest-dkms 
+sudo echo 'Acquire::ForceIPv4 "true";' > /etc/apt/apt.conf.d/99force-ipv4
+sudo apt-get update
+sudo apt-get -y install libnet1-dev
 
 # reboot if required
 
@@ -16,16 +19,33 @@ if [ -f /var/run/reboot-required ]; then
 fi
 
 PTP_HOME=$HOME/ptp
+PTP_PREREQS=$PTP_HOME/prereqs
 
 rm -rf $PTP_HOME
+mkdir -p $PTP_HOME
+mkdir -p $PTP_PREREQS
 sudo apt-get update
 sudo apt-get install -y python-pip
 pip install virtualenv
-mkdir -p $PTP_HOME
-cd $PTP_HOME
+
+
 virtualenv --no-site-packages venv
 source venv/bin/activate
 pip install flask
 pip install scapy
 
+cd $PTP_PREREQS
+sudo apt-get -y install libpcap-dev
+sudo apt-get install -y pkg-config
+sudo apt-get install -y libglib2.0-dev
+git clone https://github.com/MITRECND/pynids.git
+cd pynids
+python setup.py build
+python setup.py install
+
+# run PTP:
+cd $PTP_HOME
+. venv/bin/activate
 git clone https://github.com/folde01/PTP.git
+cd PTP
+sudo PATH=$PATH python ptp_ui.py

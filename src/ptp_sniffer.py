@@ -4,7 +4,7 @@ from scapy.all import *
 import threading
 import unittest
 import os
-from import ptp_mock_target_device *
+#from import ptp_mock_target_device *
 
 class Sniffer:
 
@@ -13,17 +13,17 @@ class Sniffer:
 
     def __init__(self, pcap_filename='sniffed.pcap'):
         self._pcap_filename = pcap_filename 
+        Sniffer._sniffer_thread = threading.Thread(target=self._run_sniffer_thread)
+        Sniffer._sniffer_thread.daemon = True
 
     def start(self):
         """Start sniffer. Return true if sniffer started, false otherwise."""
-        _sniffer_thread = threading.Thread(target=self._run_sniffer_thread)
-        _sniffer_thread.daemon = True
-        _sniffer_thread.start()
-        return is_running()
+        Sniffer._sniffer_thread.start()
+        return self.is_running()
 
 
     def _run_sniffer_thread(self):
-        _packets = sniff(filter='ip', stop_filter=self._stopfilter)
+        Sniffer._packets = sniff(filter='ip', stop_filter=self._stopfilter)
 
 
     def _stopfilter(self, kill_packet):
@@ -36,7 +36,7 @@ class Sniffer:
     def stop(self):
         """Stop sniffer. Return true if sniffer killed, false otherwise."""
         self._send_kill_packet()
-        return not is_running()
+        return not self.is_running()
 
 
     def write_pcap(self):
@@ -53,7 +53,7 @@ class Sniffer:
 
 
     def is_running(self):
-        return _sniffer_thread.isAlive()
+        return Sniffer._sniffer_thread.isAlive()
         
 
     def pcap_file_written(self):
