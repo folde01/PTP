@@ -5,6 +5,14 @@ class Analyser:
     def __init__(self, sniffer):
         self._sniffer = sniffer
         self._results = []
+        self._streams = []
+
+    def _total_bytes_from_client(self):
+        return sum([ stream.server.count for stream in self._streams]) 
+
+
+    def _total_bytes_to_client(self):
+        return sum([ stream.client.count for stream in self._streams]) 
 
 
     def results(self):
@@ -16,13 +24,42 @@ class Analyser:
         return self._sniffer.pcap_filename()
 
 
+
     def _analyse_pcapfile(self, pcap_filename):
         nids.param("scan_num_hosts", 0) # disable portscan detection
         nids.chksum_ctl([('0.0.0.0/0', False)]) # disable checksumming
         nids.param("filename", pcap_filename)
         nids.init()
-        nids.register_tcp(self._tcpStreamCallback)
+        #nids.register_tcp(self._tcpStreamCallback)
+        nids.register_tcp(self._callback_totalBytes)
         nids.run()
+        self._results.append("TOTAL BYTES FROM CLIENT: " + str(self._total_bytes_from_client()))
+        self._results.append("TOTAL BYTES TO CLIENT: " + str(self._total_bytes_to_client()))
+
+    def _add_stream_if_new(self, stream):
+        if stream not in self._streams:
+            self._streams.append(stream)
+
+    def _callback_totalBytes(self, tcpStream):
+        if tcpStream.nids_state == nids.NIDS_JUST_EST:
+            self._add_stream_if_new(tcpStream)
+            result = "NIDS_JUST_EST: " + str(tcpStream.addr)
+            self._results.append(result)
+            tcpStream.client.collect = 1
+            tcpStream.server.collect = 1
+        elif tcpStream.nids_state == nids.NIDS_DATA:
+            tcpStream.discard(0)
+            self._add_stream_if_new(tcpStream)
+            result = "NIDS_DATA: " + str(tcpStream.addr) + " FROM client: " + str(tcpStream.server.count)
+            self._results.append(result)
+            result = "NIDS_DATA: " + str(tcpStream.addr) + " TO client: " + str(tcpStream.client.count)
+            self._results.append(result)
+        elif tcpStream.nids_state in (nids.NIDS_TIMEOUT, nids.NIDS_CLOSE, nids.NIDS_RESET):
+            self._add_stream_if_new(tcpStream)
+            result = "NIDS END STATE: " + str(tcpStream.addr) + " FROM client: " + str(tcpStream.server.count)
+            self._results.append(result)
+            result = "NIDS END STATE: " + str(tcpStream.addr) + " TO client: " + str(tcpStream.client.count)
+            self._results.append(result)
 
 
     def _tcpStreamCallback(self, tcpStream):
