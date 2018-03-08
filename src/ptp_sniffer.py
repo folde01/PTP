@@ -4,6 +4,7 @@ from scapy.all import *
 import threading
 import unittest
 import os
+import time
 #from import ptp_mock_target_device *
 
 class Sniffer:
@@ -17,9 +18,9 @@ class Sniffer:
         Sniffer._sniffer_thread.daemon = True
 
     def start(self):
-        """Start sniffer. Return true if sniffer started, false otherwise."""
+        """Start sniffer."""
         Sniffer._sniffer_thread.start()
-        return self.is_running()
+        #return self.is_running()
 
 
     def _run_sniffer_thread(self):
@@ -34,13 +35,17 @@ class Sniffer:
 
 
     def stop(self):
-        """Stop sniffer. Return true if sniffer killed, false otherwise."""
+        """Stop sniffer."""
         self._send_kill_packet()
-        return not self.is_running()
+	if not self.is_running():
+            self._write_pcap()
+        else:
+            time.sleep(1)
+            self.stop()
 
 
-    def write_pcap(self):
-        """Write pcap file. Return true if written, false otherwise."""
+    def _write_pcap(self):
+        """Write pcap file."""
         wrpcap(self._pcap_filename, self._packets)
 
 
@@ -86,12 +91,12 @@ class TestSniffer(unittest.TestCase):
     def test_write_pcap_writes_file_if_sniffer_has_finished(self):
         self.sniffer.start()
         self.sniffer.stop()
-        self.write_pcap()
+        self._write_pcap()
         self.assertTrue(self.pcap_file_written())
 
     def test_write_pcap_does_not_write_file_if_sniffer_has_not_finished(self):
         self.sniffer.start()
-        self.write_pcap()
+        self._write_pcap()
         self.assertFalse(self.pcap_file_written())
 
 if __name__ == '__main__':

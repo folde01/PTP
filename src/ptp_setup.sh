@@ -2,13 +2,22 @@
 
 # VM prerequisites: Ubuntu 16.04 server running in VirtualBox, with bridged network and sshd running so this script can be run from the host.
 
-# Dependencies: virtualenv, python 2, pip, scapy, libnids, pynids, flask ...
+# disable ipv6
+if [ `cat /proc/sys/net/ipv6/conf/all/disable_ipv6` == 0 ]; 
+then 
+	sudo bash -c "echo 'net.ipv6.conf.all.disable_ipv6 = 1' >> /etc/sysctl.conf"
+	sudo bash -c "echo 'net.ipv6.conf.default.disable_ipv6 = 1' >> /etc/sysctl.conf"
+	sudo bash -c "echo 'net.ipv6.conf.lo.disable_ipv6 = 1' >> /etc/sysctl.conf"
+	sudo sysctl -p
+fi
 
+# OS updates: 
 sudo apt-get update
 sudo apt-get -y dist-upgrade
 sudo apt-get -y install virtualbox-guest-dkms 
-sudo echo 'Acquire::ForceIPv4 "true";' > /etc/apt/apt.conf.d/99force-ipv4
-sudo apt-get update
+
+# Dependencies: virtualenv, python 2, pip, scapy, libnids, pynids, flask ...
+
 sudo apt-get -y install libnet1-dev
 
 # reboot if required
@@ -42,6 +51,8 @@ git clone https://github.com/MITRECND/pynids.git
 cd pynids
 python setup.py build
 python setup.py install
+
+# for development: .tmux.conf, .vimrc, .bash_profile
 
 # run PTP:
 cd $PTP_HOME
