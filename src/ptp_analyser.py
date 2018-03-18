@@ -7,12 +7,6 @@ class Analyser:
         self._results = []
         self._streams = []
 
-    def _total_bytes_from_client(self):
-        return sum([ stream.server.count for stream in self._streams]) 
-
-    def _total_bytes_to_client(self):
-        return sum([ stream.client.count for stream in self._streams]) 
-
     def results(self):
         self._analyse_pcapfile(self._pcap_filename())
         return self._results
@@ -25,19 +19,21 @@ class Analyser:
         nids.chksum_ctl([('0.0.0.0/0', False)]) # disable checksumming
         nids.param("filename", pcap_filename)
         nids.init()
-        #nids.register_tcp(self._tcpStreamCallback)
-        #nids.register_tcp(self._callback_totalBytes)
         nids.register_tcp(self._callback_gatherStreamObjects)
         nids.run()
-        #self._results.append("TOTAL BYTES FROM CLIENT: " + str(self._total_bytes_from_client()))
-        #self._results.append("TOTAL BYTES TO CLIENT: " + str(self._total_bytes_to_client()))
+        self._analyse_streams(self._streams)
 
-            
+    def _analyse_streams(self, streams):
+        for stream in streams:
+            addr = stream.addr
+            bytes_to_server = stream.server.count
+            bytes_to_client = stream.client.count
+            result = str(addr) + " BYTES OUT: " + str(bytes_to_server) + " BYTES IN: " + str(bytes_to_client)
+            self._results.append(result)
+
     def _add_stream_if_new(self, stream):
         if stream not in self._streams:
             self._streams.append(stream)
-
-    def _get_stream_objects
 
     def _callback_gatherStreamObjects(self, tcpStream):
         self._add_stream_if_new(tcpStream)
@@ -47,46 +43,7 @@ class Analyser:
         else: 
             tcpStream.discard(0)
 
-    def _callback_totalBytes(self, tcpStream):
-        if tcpStream.nids_state == nids.NIDS_JUST_EST:
-            self._add_stream_if_new(tcpStream)
-            result = "NIDS_JUST_EST: " + str(tcpStream.addr)
-            self._results.append(result)
-            tcpStream.client.collect = 1
-            tcpStream.server.collect = 1
-        elif tcpStream.nids_state == nids.NIDS_DATA:
-            tcpStream.discard(0)
-            self._add_stream_if_new(tcpStream)
-            result = "NIDS_DATA: " + str(tcpStream.addr) + " FROM client: " + str(tcpStream.server.count)
-            self._results.append(result)
-            result = "NIDS_DATA: " + str(tcpStream.addr) + " TO client: " + str(tcpStream.client.count)
-            self._results.append(result)
-        elif tcpStream.nids_state in (nids.NIDS_TIMEOUT, nids.NIDS_CLOSE, nids.NIDS_RESET):
-            self._add_stream_if_new(tcpStream)
-            result = "NIDS END STATE: " + str(tcpStream.addr) + " FROM client: " + str(tcpStream.server.count)
-            self._results.append(result)
-            result = "NIDS END STATE: " + str(tcpStream.addr) + " TO client: " + str(tcpStream.client.count)
-            self._results.append(result)
-
-
-    def _tcpStreamCallback(self, tcpStream):
-        if tcpStream.nids_state == nids.NIDS_JUST_EST:
-            result = str(tcpStream.addr) + " -- TCP stream started"
-            self._results.append(result)
-            tcpStream.client.collect = 1
-            tcpStream.server.collect = 1
-        elif tcpStream.nids_state == nids.NIDS_DATA:
-            tcpStream.discard(0)
-            result = str(tcpStream.addr) + " -- bytes to server: " + str(tcpStream.server.count)
-            self._results.append(result)
-            result = str(tcpStream.addr) + " -- bytes to client: " + str(tcpStream.client.count)
-            self._results.append(result)
-        elif tcpStream.nids_state in (nids.NIDS_TIMEOUT, nids.NIDS_CLOSE, nids.NIDS_RESET):
-            result = str(tcpStream.addr) + " -- TOTAL bytes to server: " + str(tcpStream.server.count)
-            self._results.append(result)
-            result = str(tcpStream.addr) + " -- TOTAL bytes to client: " + str(tcpStream.client.count)
-            self._results.append(result)
-
+'''
     def _streams_to_servers(self):
         servers = []
         for stream in self._streams:
@@ -104,4 +61,9 @@ class Server:
         self.bytes_to_server = bytes_to_server 
         self.bytes_to_client = bytes_to_client 
 
+    def _total_bytes_from_client(self):
+        return sum([ stream.server.count for stream in self._streams]) 
 
+    def _total_bytes_to_client(self):
+        return sum([ stream.client.count for stream in self._streams]) 
+'''

@@ -16,7 +16,7 @@ sudo apt-get update
 sudo apt-get -y dist-upgrade
 sudo apt-get -y install virtualbox-guest-dkms 
 
-# Dependencies: VPN (pptpd to start with), virtualenv, python 2, pip, scapy, libnids, pynids, flask ...
+# Dependencies: VPN (pptpd to start with), virtualenv, python 2, pip, scapy, libnids, pynids, flask, mock ...
 
 apt-get install pptpd
 # todo: finish pptpd
@@ -46,6 +46,7 @@ virtualenv --no-site-packages venv
 source venv/bin/activate
 pip install flask
 pip install scapy
+pip install mock # dev
 
 cd $PTP_PREREQS
 sudo apt-get -y install libpcap-dev
