@@ -7,9 +7,6 @@ class PacketReader:
 	self._streams = []
 	self._analyse_pcapfile(pcap_filename)
 
-    def stream_count(self):
-        pass
-
     def streams(self):
         return self._streams
 
@@ -33,19 +30,25 @@ class PacketReader:
         return (src_ip_1 == src_ip_2 and src_port_1 == src_port_2 and dest_ip_1 == dest_ip_2 and dest_port_1 == dest_ip_2) # todo: make this fail earlier
 
     def _callback_gatherStreamObjects(self, stream):
-        self._add_stream_if_new(stream)
         if stream.nids_state == nids.NIDS_JUST_EST:
             stream.client.collect = 1
             stream.server.collect = 1
-        else:
+            self._add_stream_if_new(stream)
+        elif stream.nids_state == nids.NIDS_DATA:
             stream.discard(0)
 
 class TestPacketReader(unittest.TestCase):
 
+    def test_pcap_stream_count_is_17(self):
+        pcap_filename = 'stream_count_is_17.pcap'
+        pr = PacketReader(pcap_filename)
+        self.assertEqual(len(pr.streams()), 17)
+
     def test_pcap_stream_count_is_3(self):
         pcap_filename = 'stream_count_is_3.pcap'
         pr = PacketReader(pcap_filename)
-        self.assertEqual(pr.stream_count(), 3)
+        self.assertEqual(len(pr.streams()), 3)
+
 
 if __name__ == '__main__':
 	unittest.main()
