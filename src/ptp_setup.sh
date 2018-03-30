@@ -52,9 +52,14 @@ cd $PTP_PREREQS
 sudo apt-get -y install libpcap-dev
 sudo apt-get install -y pkg-config
 sudo apt-get install -y libglib2.0-dev
+
 git clone https://github.com/MITRECND/pynids.git
 cd pynids
 python setup.py build
+python setup.py install
+
+git clone https://github.com/CoreSecurity/pcapy.git
+cd pcapy
 python setup.py install
 
 # for development: .tmux.conf, .vimrc, .bash_profile
