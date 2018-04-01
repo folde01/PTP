@@ -1,10 +1,13 @@
 import logging
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
-from scapy.all import * 
+from scapy.all import Ether, IP, TCP, sendp
 import threading
 import unittest
 import os
 import time
+import pcapy
+from socket import ntohs
+from struct import unpack
 #from import ptp_mock_target_device *
 
 class Sniffer:
@@ -23,39 +26,56 @@ class Sniffer:
         #return self.is_running()
 
 
+
     def _run_sniffer_thread(self):
-        Sniffer._packets = sniff(filter='ip', stop_filter=self._stopfilter)
+        dev = 'enp0s3' 
+        cap = pcapy.open_live(dev , 65536 , 1 , 0)
+	stop_eth_addr = '00:00:00:03:02:01'
+	bpf_filter = "tcp or ether dst " + stop_eth_addr
+	cap.setfilter(bpf_filter)
+	dumper = cap.dump_open(self._pcap_filename)
 
+	while(True):
+	    packet_hdr, packet_body = cap.next()
+	    dumper.dump(packet_hdr,packet_body)
+	    if self._is_stop_packet(packet_body, stop_eth_addr):
+		break
 
-    def _stopfilter(self, kill_packet):
-        if kill_packet[IP].dst == '10.10.10.10':
-            return True
-        else:
-            return False
+	del dumper
+
+    '''credit: binary tides'''
+    def _eth_addr(self, a):
+	b = "%.2x:%.2x:%.2x:%.2x:%.2x:%.2x" % (ord(a[0]) , ord(a[1]) , ord(a[2]), ord(a[3]), ord(a[4]) , ord(a[5]))
+	return b
+
+    '''credit: binary tides'''
+    def _is_stop_packet(self, packet_body, stop_eth_addr):
+	eth_header_length = 14
+	eth_header = packet_body[:eth_header_length]
+	eth = unpack('!6s6sH' , eth_header)
+	eth_protocol = ntohs(eth[2])
+	eth_header_bytes = packet_body[0:6]
+	eth_addr_str = self._eth_addr(eth_header_bytes)
+	if eth_addr_str == stop_eth_addr:
+	    # print 'Stop packet received'
+	    return True
+	return False
 
 
     def stop(self):
         """Stop sniffer."""
         self._send_kill_packet()
-	if not self.is_running():
-            self._write_pcap()
-        else:
+	if self.is_running():
             time.sleep(1)
             self.stop()
-
-
-    def _write_pcap(self):
-        """Write pcap file."""
-        wrpcap(self._pcap_filename, self._packets)
 
 
     def pcap_filename(self):
         return self._pcap_filename 
 
-
     def _send_kill_packet(self):
-        send(IP(dst='10.10.10.10'))
-
+	kill_packet = Ether(dst='00:00:00:03:02:01')/IP(dst='10.11.12.13')/TCP()
+	sendp(kill_packet)
 
     def is_running(self):
         return Sniffer._sniffer_thread.isAlive()
@@ -98,6 +118,7 @@ class TestSniffer(unittest.TestCase):
         self.sniffer.start()
         self._write_pcap()
         self.assertFalse(self.pcap_file_written())
+
 
 if __name__ == '__main__':
     unittest.main()
