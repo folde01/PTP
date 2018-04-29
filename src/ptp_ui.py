@@ -7,6 +7,7 @@ sniffer = Sniffer()
 analyser = Analyser(sniffer)
 
 @app.route('/index')
+@app.route('/')
 def index():  
     '''Web page accessible via http://localhost/index. Has 'start capture' button.'''
     return render_template('index.html')

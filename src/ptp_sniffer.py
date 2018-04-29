@@ -8,6 +8,7 @@ import time
 import pcapy
 from socket import ntohs
 from struct import unpack
+from  ptp_tcp_client import PacketSender 
 #from import ptp_mock_target_device *
 
 class Sniffer:
@@ -24,8 +25,6 @@ class Sniffer:
         """Start sniffer."""
         Sniffer._sniffer_thread.start()
         #return self.is_running()
-
-
 
     def _run_sniffer_thread(self):
         dev = 'enp0s3' 
@@ -69,11 +68,13 @@ class Sniffer:
             time.sleep(1)
             self.stop()
 
-
     def pcap_filename(self):
         return self._pcap_filename 
 
     def _send_kill_packet(self):
+        PacketSender().send_kill_packet()
+
+    def _send_kill_packet_old(self):
 	kill_packet = Ether(dst='00:00:00:03:02:01')/IP(dst='10.11.12.13')/TCP()
 	sendp(kill_packet)
 
@@ -81,43 +82,50 @@ class Sniffer:
         return Sniffer._sniffer_thread.isAlive()
         
 
-    def pcap_file_written(self):
-        return False
+    def pcap_file_exists(self):
+        return os.path.isfile(self._pcap_filename) 
 
 
 class TestSniffer(unittest.TestCase):
 
     def setUp(self):
         pcap_filename = 'sniffed_TEST.pcap'
+        if os.path.isfile(pcap_filename):
+            os.remove(pcap_filename)
         self.sniffer = Sniffer(pcap_filename=pcap_filename)
 
     def tearDown(self):
         self.sniffer.stop()
+        pcap_filename = 'sniffed_TEST.pcap'
+        if os.path.isfile(pcap_filename):
+            os.remove(pcap_filename)
         
-    def test_no_sniffer_is_not_running_before_starting_it(self):
-        self.assertFalse(self.is_running())
+    def test_sniffer_is_not_running_before_starting_it(self):
+        self.assertFalse(self.sniffer.is_running())
 
     def test_start_starts_sniffer(self):
         self.sniffer.start()
-        self.assertTrue(self.is_running())
+        self.assertTrue(self.sniffer.is_running())
 
     def test_stop_stops_sniffer(self):
         self.sniffer.start()
-        #td = ptp_mock_target_device.MockTD()
-        #td.send_packet()
         self.sniffer.stop()
-        self.assertFalse(self.is_running())
+        self.assertFalse(self.sniffer.is_running())
     
-    def test_write_pcap_writes_file_if_sniffer_has_finished(self):
+    def test_pcap_file_exists_if_sniffer_has_finished(self):
         self.sniffer.start()
         self.sniffer.stop()
-        self._write_pcap()
-        self.assertTrue(self.pcap_file_written())
+        self.assertTrue(self.sniffer.pcap_file_exists())
 
-    def test_write_pcap_does_not_write_file_if_sniffer_has_not_finished(self):
+    def test_no_pcap_file_if_sniffer_has_not_run(self):
+        self.assertFalse(self.sniffer.pcap_file_exists())
+
+'''
+    def test_test_packet_sent_and_received(self):
         self.sniffer.start()
-        self._write_pcap()
-        self.assertFalse(self.pcap_file_written())
+        PacketSender().send_test_packet()
+        self.sniffer.stop()
+'''
 
 
 if __name__ == '__main__':
