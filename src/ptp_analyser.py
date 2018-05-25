@@ -31,6 +31,7 @@ class Analyser:
             result = str(addr) + " BYTES OUT: " + str(bytes_to_server) + " BYTES IN: " + str(bytes_to_client)
             self._results.append(result)
 
+        
     def _add_stream_if_new(self, stream):
         if stream not in self._streams:
             self._streams.append(stream)
@@ -66,4 +67,12 @@ class Server:
 
     def _total_bytes_to_client(self):
         return sum([ stream.client.count for stream in self._streams]) 
+'''
+
+'''
+    def _save_streams(self):
+        for stream in self._streams:
+            _save_stream(stream)
+
+    def _save_stream(self, stream):
 '''

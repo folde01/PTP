@@ -18,7 +18,8 @@ sudo apt-get -y install virtualbox-guest-dkms
 
 # Dependencies: VPN (pptpd to start with), virtualenv, python 2, pip, scapy, libnids, pynids, flask, mock ...
 
-apt-get install pptpd
+sudo apt-get install mysql-server
+sudo apt-get install pptpd
 # todo: finish pptpd
 
 
