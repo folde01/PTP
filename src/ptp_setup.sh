@@ -46,6 +46,7 @@ pip install virtualenv
 virtualenv --no-site-packages venv
 source venv/bin/activate
 pip install flask
+pip install flask_table
 pip install scapy
 pip install mock # dev
 

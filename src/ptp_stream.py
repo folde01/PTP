@@ -1,4 +1,4 @@
-class Stream:
+class Stream(object):
     def __init__(self, cli_ip, cli_pt, svr_ip,
             svr_pt, bytes_to_svr, bytes_to_cli):
         self.cli_ip = cli_ip

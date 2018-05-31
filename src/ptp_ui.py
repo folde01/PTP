@@ -7,9 +7,9 @@ from ptp_stream_db import Stream_DB
 
 app = Flask(__name__)
 sniffer = Sniffer() 
-stream_model = Stream_Model()
-stream_reassembler = Stream_Reassembler()
+stream_reassembler = Stream_Reassembler(sniffer.pcap_filename())
 stream_db = Stream_DB()
+stream_model = Stream_Model(sniffer, stream_reassembler, stream_db)
 analyser = Analyser(sniffer, stream_model, stream_reassembler, stream_db)
 
 @app.route('/index')
