@@ -1,3 +1,4 @@
+from ptp_stream import Stream
 import nids
 
 class Stream_Reassembler:
@@ -8,8 +9,24 @@ class Stream_Reassembler:
 
     def reassemble_streams(self):
         self._analyse_pcapfile(self._pcap_filename)
+        stream_list = self._nids_streams_to_stream_list()
+        return stream_list
+
+    def reassemble_streams_old(self):
+        self._analyse_pcapfile(self._pcap_filename)
         stream_tuples = self._nids_streams_to_tuples()
         return stream_tuples 
+
+    def _nids_streams_to_stream_list(self):
+        streams = []
+        for s in self._nids_streams:
+            cli_ip, cli_pt = s.addr[0]
+            svr_ip, svr_pt = s.addr[1]
+            bytes_to_svr = s.server.count
+            bytes_to_cli = s.client.count
+            s = Stream(cli_ip, cli_pt, svr_ip, svr_pt, bytes_to_svr, bytes_to_cli)
+            streams.append(s)
+        return streams
 
     def _nids_streams_to_tuples(self):
         tuples = []
