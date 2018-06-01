@@ -67,6 +67,17 @@ class Stream_DB:
 	cursor.close()
         conn.close()
 
+    def _get_conn_to_ptp_db(self):
+	conn = MySQLdb.connect(host= "localhost", user="root",
+	    passwd="password", db="ptp")
+        return conn
+
+    def _create_db_ptp(self):
+	conn = MySQLdb.connect(host= "localhost", user="root",
+	    passwd="password")
+        cursor = conn.cursor()
+        cursor.execute("create database ptp;")
+
     def _create_table_streams(self):
         conn = self._get_conn_to_ptp_db()
         cursor = conn.cursor()
@@ -81,9 +92,3 @@ class Stream_DB:
         cursor.execute(sql)
 	cursor.close()
         conn.close()
-
-
-    def _get_conn_to_ptp_db(self):
-	conn = MySQLdb.connect(host= "localhost", user="root",
-	    passwd="password", db="ptp")
-        return conn

@@ -1,3 +1,4 @@
+import psutil
 import logging
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 from scapy.all import Ether, IP, TCP, sendp
@@ -26,9 +27,15 @@ class Sniffer:
         Sniffer._sniffer_thread.start()
         #return self.is_running()
 
+    def _get_nic_name(self):
+        interfaces = psutil.net_if_addrs()
+        interface_names = interfaces.keys()
+        # expecting this to be the wired ethernet interface
+        return interface_names[1] 
+
     def _run_sniffer_thread(self):
-        dev = 'enp0s3' 
-        cap = pcapy.open_live(dev , 65536 , 1 , 0)
+        dev = self._get_nic_name() 
+        cap = pcapy.open_live(dev, 65536, 1, 0)
 	stop_eth_addr = '00:00:00:03:02:01'
 	bpf_filter = "tcp or ether dst " + stop_eth_addr
 	cap.setfilter(bpf_filter)
