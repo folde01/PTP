@@ -27,8 +27,8 @@ sudo apt-get -y install virtualbox-guest-dkms
 
 # Dependencies: VPN (pptpd to start with), virtualenv, python 2, pip, scapy, libnids, pynids, flask, mock ...
 
-sudo apt-get install mysql-server
-sudo apt-get install pptpd
+sudo apt-get install mysql-server -y
+sudo apt-get install pptpd -y
 # todo: finish pptpd
 
 
@@ -43,13 +43,14 @@ fi
 
 PTP_HOME=$HOME/ptp
 PTP_PREREQS=$PTP_HOME/prereqs
+mkdir $PTP_PREREQS
 
 # rm -rf $PTP_HOME
 # mkdir -p $PTP_HOME
 # mkdir -p $PTP_PREREQS
 sudo apt-get update
 sudo apt-get install -y python-pip
-pip install --upgrade pip
+# pip install --upgrade pip .... DON'T RUN... THIS BREAKS PIP!
 pip install virtualenv
 
 
