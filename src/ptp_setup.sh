@@ -59,18 +59,16 @@ source venv/bin/activate
 pip install flask
 pip install flask_table
 pip install scapy
+pip install psutil
 pip install mock # dev
 
-sudo apt-get install libmysqlclient-dev python-dev
+sudo apt-get install -y libmysqlclient-dev python-dev
 pip install mysqlclient
 
 
 mkdir -p $PTP_PREREQS
 
-cd $PTP_PREREQS
-sudo apt-get -y install libpcap-dev
-sudo apt-get install -y pkg-config
-sudo apt-get install -y libglib2.0-dev
+sudo apt-get -y install libpcap-dev pkg-config libglib2.0-dev
 
 cd $PTP_PREREQS
 git clone https://github.com/MITRECND/pynids.git
@@ -83,10 +81,11 @@ git clone https://github.com/CoreSecurity/pcapy.git
 cd pcapy
 python setup.py install
 
-# run PTP:
-export PTP_HOME=~/ptp
-cd $PTP_HOME
+# initialise db
+cd $PTP_HOME/PTP/src
+python ptp_init.py
+
+# running ptp
+cd $PTP_HOME/PTP/src
 . venv/bin/activate
-git clone https://github.com/folde01/PTP.git
-cd PTP
-sudo PATH=$PATH python ptp_ui.py
+./ptp_start.sh

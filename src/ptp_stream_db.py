@@ -72,13 +72,13 @@ class Stream_DB:
 	    passwd="password", db="ptp")
         return conn
 
-    def _create_db_ptp(self):
+    def create_db_ptp(self):
 	conn = MySQLdb.connect(host= "localhost", user="root",
 	    passwd="password")
         cursor = conn.cursor()
         cursor.execute("create database ptp;")
 
-    def _create_table_streams(self):
+    def create_table_streams(self):
         conn = self._get_conn_to_ptp_db()
         cursor = conn.cursor()
         #sql = """create table streams (id int not null primary key auto_increment, dest_ip varbinary(16), dest_pt int(5), src_ip varbinary(16), src_pt int(5), b_sent int(6), b_rcvd int(10))"""
