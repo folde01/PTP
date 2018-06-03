@@ -7,3 +7,5 @@ class Stream_Table(Table):
     svr_pt = Col('svr_pt')
     bytes_to_svr = Col('bytes_to_svr')
     bytes_to_cli = Col('bytes_to_cli')
+    ts_first_pkt = Col('ts_first_pkt')
+    ts_last_pkt = Col('ts_last_pkt')

@@ -1,3 +1,4 @@
+from datetime import datetime
 import MySQLdb
 from ptp_stream import Stream
 
@@ -10,7 +11,7 @@ class Stream_DB:
             for stream in stream_collection: 
                 sql = """insert into 
                     streams (cli_ip, cli_pt, svr_ip, svr_pt, bytes_to_svr, bytes_to_cli, ts_first_pkt, ts_last_pkt) 
-                    values (inet6_aton(\'%s\'), %d, inet6_aton(\'%s\'), %d, %d, %d, %s, %s)""" % \
+                    values (inet6_aton(\'%s\'), %d, inet6_aton(\'%s\'), %d, %d, %d, '%s', '%s')""" % \
                     (stream.cli_ip, stream.cli_pt, stream.svr_ip, stream.svr_pt,
                      stream.bytes_to_svr, stream.bytes_to_cli,
                      stream.ts_first_pkt, stream.ts_last_pkt)
@@ -28,13 +29,14 @@ class Stream_DB:
         try:
             sql = """insert into 
                      streams (cli_ip, cli_pt, svr_ip, svr_pt, bytes_to_svr, bytes_to_cli, ts_first_pkt, ts_last_pkt) 
-                    values (inet6_aton(\'%s\'), %d, inet6_aton(\'%s\'), %d, %d, %d, %s, %s)""" % \
+                    values (inet6_aton(\'%s\'), %d, inet6_aton(\'%s\'), %d, %d, %d, '%s', '%s')""" % \
                     (stream.cli_ip, stream.cli_pt, stream.svr_ip, stream.svr_pt, 
                      stream.bytes_to_svr, stream.bytes_to_cli,
                      stream.ts_first_pkt, stream.ts_last_pkt)
             cursor.execute(sql)
             conn.commit()
         except:
+            print("Insert failed.")
             conn.rollback()
         finally:
             cursor.close()
