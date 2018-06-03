@@ -9,10 +9,11 @@ class Stream_DB:
         try:
             for stream in stream_collection: 
                 sql = """insert into 
-                    streams (cli_ip, cli_pt, svr_ip, svr_pt, bytes_to_svr, bytes_to_cli) 
-                    values (inet6_aton(\'%s\'), %d, inet6_aton(\'%s\'), %d, %d, %d)""" % \
+                    streams (cli_ip, cli_pt, svr_ip, svr_pt, bytes_to_svr, bytes_to_cli, ts_first_pkt, ts_last_pkt) 
+                    values (inet6_aton(\'%s\'), %d, inet6_aton(\'%s\'), %d, %d, %d, %s, %s)""" % \
                     (stream.cli_ip, stream.cli_pt, stream.svr_ip, stream.svr_pt,
-                     stream.bytes_to_svr, stream.bytes_to_cli)
+                     stream.bytes_to_svr, stream.bytes_to_cli,
+                     stream.ts_first_pkt, stream.ts_last_pkt)
                 cursor.execute(sql)
             conn.commit()
         except:
@@ -26,10 +27,11 @@ class Stream_DB:
 	cursor = conn.cursor()
         try:
             sql = """insert into 
-                     streams (cli_ip, cli_pt, svr_ip, svr_pt, bytes_to_svr, bytes_to_cli) 
-                    values (inet6_aton(\'%s\'), %d, inet6_aton(\'%s\'), %d, %d, %d)""" % \
+                     streams (cli_ip, cli_pt, svr_ip, svr_pt, bytes_to_svr, bytes_to_cli, ts_first_pkt, ts_last_pkt) 
+                    values (inet6_aton(\'%s\'), %d, inet6_aton(\'%s\'), %d, %d, %d, %s, %s)""" % \
                     (stream.cli_ip, stream.cli_pt, stream.svr_ip, stream.svr_pt, 
-                     stream.bytes_to_svr, stream.bytes_to_cli)
+                     stream.bytes_to_svr, stream.bytes_to_cli,
+                     stream.ts_first_pkt, stream.ts_last_pkt)
             cursor.execute(sql)
             conn.commit()
         except:
@@ -42,8 +44,8 @@ class Stream_DB:
         streams = []
         rows = self._select_all_stream_rows()
         for row in rows:
-            cli_ip, cli_pt, svr_ip, svr_pt, bytes_to_svr, bytes_to_cli = row
-            stream = Stream(cli_ip, cli_pt, svr_ip, svr_pt, bytes_to_svr, bytes_to_cli)
+            cli_ip, cli_pt, svr_ip, svr_pt, bytes_to_svr, bytes_to_cli, ts_first_pkt, ts_last_pkt = row
+            stream = Stream(cli_ip, cli_pt, svr_ip, svr_pt, bytes_to_svr, bytes_to_cli, ts_first_pkt, ts_last_pkt)
             streams.append(stream)
         return streams
 
@@ -51,7 +53,7 @@ class Stream_DB:
         conn = self._get_conn_to_ptp_db()
 	cursor = conn.cursor()
         # todo: don't use distinct
-	sql =  "select inet6_ntoa(cli_ip), cli_pt, inet6_ntoa(svr_ip), svr_pt, bytes_to_svr, bytes_to_cli from streams;"
+	sql =  "select inet6_ntoa(cli_ip), cli_pt, inet6_ntoa(svr_ip), svr_pt, bytes_to_svr, bytes_to_cli, ts_first_pkt, ts_last_pkt from streams;"
 	cursor.execute(sql)
 	rows = cursor.fetchall()
 	cursor.close()
@@ -87,7 +89,9 @@ class Stream_DB:
             svr_ip varbinary(16),
             svr_pt int(5), 
             bytes_to_cli int(10),
-            bytes_to_svr int(6))"""
+            bytes_to_svr int(6),
+            ts_first_pkt datetime, 
+            ts_last_pkt datetime )"""
         cursor.execute(sql)
 	cursor.close()
         conn.close()

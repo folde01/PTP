@@ -19,8 +19,8 @@ class Stream_Reassembler:
             svr_ip, svr_pt = s.addr[1]
             bytes_to_svr = s.server.count
             bytes_to_cli = s.client.count
-            ts_first_pkt = 0
-            ts_last_pkt = 0
+            ts_first_pkt = '2011-11-11 11:11:11' 
+            ts_last_pkt = '2011-11-11 11:11:11' 
             s = Stream(cli_ip, cli_pt, svr_ip, svr_pt, bytes_to_svr, bytes_to_cli,
                     ts_first_pkt, ts_last_pkt)
             streams.append(s)
@@ -35,14 +35,22 @@ class Stream_Reassembler:
         nids.run()
 
     def _is_seen_stream(self, stream):
-        cli_ip, cli_pt = stream.addr[0]
-        svr_ip, svr_pt = stream.addr[1]
+        stream_quad = self._get_stream_quad(stream)
         for stream_seen in self._nids_streams:
-            cli_ip_seen, cli_pt_seen = stream_seen.addr[0]
-            svr_ip_seen, svr_pt_seen = stream_seen.addr[1]
-            if (cli_ip, cli_pt, svr_ip, svr_pt) == (cli_ip_seen, cli_pt_seen, svr_ip_seen, svr_pt_seen):
+            stream_quad_seen = self._get_stream_quad(stream_seen)
+            if stream_quad == stream_quad_seen:
                 return True
         return False
+
+    def _get_stream_quad(self, stream):
+        cli_ip, cli_pt = stream.addr[0]
+        svr_ip, svr_pt = stream.addr[1]
+        return (cli_ip, cli_pt, svr_ip, svr_pt)
+
+    def _get_stream_id(self, stream):
+        stream_quad = self._get_stream_quad(stream)
+        stream_id = cli_ip + ':' + str(cli_pt) + '-' + svr_ip + ':' + str(svr_pt)
+        return stream_id
 
     def _callback_gather_stream_objects(self, stream):
         if not self._is_seen_stream(stream):
@@ -52,3 +60,4 @@ class Stream_Reassembler:
             stream.server.collect = 1
         else: 
             stream.discard(0)
+
