@@ -11,7 +11,6 @@ import pcapy
 from socket import ntohs
 from struct import unpack
 from  ptp_tcp_client import PacketSender 
-#from import ptp_mock_target_device *
 
 class Sniffer:
 
