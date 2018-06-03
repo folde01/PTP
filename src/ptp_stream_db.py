@@ -42,9 +42,8 @@ class Stream_DB:
         streams = []
         rows = self._select_all_stream_rows()
         for row in rows:
-            stream = Stream(cli_ip = row[0], 
-                    cli_pt = row[1], svr_ip = row[2], svr_pt = row[3],
-                    bytes_to_svr = row[4], bytes_to_cli = row[5])
+            cli_ip, cli_pt, svr_ip, svr_pt, bytes_to_svr, bytes_to_cli = row
+            stream = Stream(cli_ip, cli_pt, svr_ip, svr_pt, bytes_to_svr, bytes_to_cli)
             streams.append(stream)
         return streams
 
@@ -52,14 +51,14 @@ class Stream_DB:
         conn = self._get_conn_to_ptp_db()
 	cursor = conn.cursor()
         # todo: don't use distinct
-	sql =  "select distinct inet6_ntoa(cli_ip), cli_pt, inet6_ntoa(svr_ip), svr_pt, bytes_to_svr, bytes_to_cli from streams;"
+	sql =  "select inet6_ntoa(cli_ip), cli_pt, inet6_ntoa(svr_ip), svr_pt, bytes_to_svr, bytes_to_cli from streams;"
 	cursor.execute(sql)
 	rows = cursor.fetchall()
 	cursor.close()
         conn.close()
 	return rows
 
-    def _drop_table_streams(self):
+    def drop_table_streams(self):
         conn = self._get_conn_to_ptp_db()
         cursor = conn.cursor()
         sql = "drop table streams;"

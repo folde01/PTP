@@ -1,3 +1,4 @@
+from ptp_logger import Logger
 import psutil
 import logging
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
@@ -16,11 +17,13 @@ class Sniffer:
 
     _packets = None
     _sniffer_thread = None
+    _logger = Logger(logfile="ptp_sniffer.log")
 
     def __init__(self, pcap_filename='sniffed.pcap'):
         self._pcap_filename = pcap_filename 
         Sniffer._sniffer_thread = threading.Thread(target=self._run_sniffer_thread)
         Sniffer._sniffer_thread.daemon = True
+        self.log("Sniffer initialised")
 
     def start(self):
         """Start sniffer."""
@@ -30,14 +33,37 @@ class Sniffer:
     def _get_nic_name(self):
         interfaces = psutil.net_if_addrs()
         interface_names = interfaces.keys()
-        # expecting this to be the wired ethernet interface
-        return interface_names[1] 
+        for name in interface_names:
+            if name.startswith("en"):
+                return name
+        return None 
+
+    def _get_nic_IPv4_addr(self, nic_name):
+        interfaces = psutil.net_if_addrs()
+        nic = interfaces[nic_name]
+        for snic in nic:
+            if snic.family == 2:
+                return snic.address
+        return None
 
     def _run_sniffer_thread(self):
-        dev = self._get_nic_name() 
-        cap = pcapy.open_live(dev, 65536, 1, 0)
+        nic_name = self._get_nic_name() 
+        local_ip = self._get_nic_IPv4_addr(self._get_nic_name())
+        self.log("nic_name=%s; local_ip=%s" % (nic_name, local_ip))
+        #nic_name = "ppp0"
+        max_packet_size = 65536
+        promiscuous_mode = 1
+        # may need to set timeout_ms to something non-zero, 
+        # otherwise the underlying (libpcap) packet capture loop iteration 
+        # can't complete until packets are actually captured
+        timeout_ms = 0 
+        cap = pcapy.open_live(nic_name, max_packet_size, promiscuous_mode, timeout_ms)
 	stop_eth_addr = '00:00:00:03:02:01'
-	bpf_filter = "tcp or ether dst " + stop_eth_addr
+	#bpf_filter = "tcp or ether dst " + stop_eth_addr
+        host_ip = '192.168.1.3'
+	#bpf_filter = "( host %s and tcp ) or ether dst %s" % (local_ip, stop_eth_addr)
+	bpf_filter = "( host %s and tcp and ( not host %s ) ) or ether dst %s" % (local_ip, host_ip, stop_eth_addr)
+        self.log("bpf_filter=%s" % bpf_filter)
 	cap.setfilter(bpf_filter)
 	dumper = cap.dump_open(self._pcap_filename)
 
@@ -92,6 +118,8 @@ class Sniffer:
     def pcap_file_exists(self):
         return os.path.isfile(self._pcap_filename) 
 
+    def log(self, msg):
+        self._logger.log(msg)
 
 class TestSniffer(unittest.TestCase):
 
@@ -126,6 +154,7 @@ class TestSniffer(unittest.TestCase):
 
     def test_no_pcap_file_if_sniffer_has_not_run(self):
         self.assertFalse(self.sniffer.pcap_file_exists())
+
 
 '''
     def test_test_packet_sent_and_received(self):

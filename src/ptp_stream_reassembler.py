@@ -12,11 +12,6 @@ class Stream_Reassembler:
         stream_list = self._nids_streams_to_stream_list()
         return stream_list
 
-    def reassemble_streams_old(self):
-        self._analyse_pcapfile(self._pcap_filename)
-        stream_tuples = self._nids_streams_to_tuples()
-        return stream_tuples 
-
     def _nids_streams_to_stream_list(self):
         streams = []
         for s in self._nids_streams:
@@ -24,20 +19,12 @@ class Stream_Reassembler:
             svr_ip, svr_pt = s.addr[1]
             bytes_to_svr = s.server.count
             bytes_to_cli = s.client.count
-            s = Stream(cli_ip, cli_pt, svr_ip, svr_pt, bytes_to_svr, bytes_to_cli)
+            ts_first_pkt = 0
+            ts_last_pkt = 0
+            s = Stream(cli_ip, cli_pt, svr_ip, svr_pt, bytes_to_svr, bytes_to_cli,
+                    ts_first_pkt, ts_last_pkt)
             streams.append(s)
         return streams
-
-    def _nids_streams_to_tuples(self):
-        tuples = []
-        for s in self._nids_streams:
-            cli_ip, cli_pt = s.addr[0]
-            svr_ip, svr_pt = s.addr[1]
-            bytes_to_svr = s.server.count
-            bytes_to_cli = s.client.count
-            t = (cli_ip, cli_pt, svr_ip, svr_pt, bytes_to_svr, bytes_to_cli)
-            tuples.append(t)
-        return tuples
 
     def _analyse_pcapfile(self, pcap_filename):
         nids.param("scan_num_hosts", 0) # disable portscan detection
@@ -47,8 +34,18 @@ class Stream_Reassembler:
         nids.register_tcp(self._callback_gather_stream_objects)
         nids.run()
 
+    def _is_seen_stream(self, stream):
+        cli_ip, cli_pt = stream.addr[0]
+        svr_ip, svr_pt = stream.addr[1]
+        for stream_seen in self._nids_streams:
+            cli_ip_seen, cli_pt_seen = stream_seen.addr[0]
+            svr_ip_seen, svr_pt_seen = stream_seen.addr[1]
+            if (cli_ip, cli_pt, svr_ip, svr_pt) == (cli_ip_seen, cli_pt_seen, svr_ip_seen, svr_pt_seen):
+                return True
+        return False
+
     def _callback_gather_stream_objects(self, stream):
-        if stream not in self._nids_streams:
+        if not self._is_seen_stream(stream):
             self._nids_streams.append(stream)
         if stream.nids_state == nids.NIDS_JUST_EST:
             stream.client.collect = 1
