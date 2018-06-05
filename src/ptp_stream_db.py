@@ -1,6 +1,7 @@
 from datetime import datetime
 import MySQLdb
 from ptp_stream import Stream
+from ptp_stream_quad import Stream_Quad
 
 class Stream_DB:
 
@@ -51,10 +52,23 @@ class Stream_DB:
             streams.append(stream)
         return streams
 
+    def get_stream_with_stream_quad(self, stream_quad):
+        conn = self._get_conn_to_ptp_db()
+	cursor = conn.cursor()
+	sql =  """  select id, inet6_ntoa(cli_ip), cli_pt, inet6_ntoa(svr_ip), svr_pt,
+                        bytes_to_svr, bytes_to_cli, ts_first_pkt, ts_last_pkt
+                    from streams
+                    where cli_ip = inet6_aton(\'%s\');"""
+	cursor.execute(sql)
+	rows = cursor.fetchall()
+	cursor.close()
+        conn.close()
+	return rows
+        
+
     def _select_all_stream_rows(self):
         conn = self._get_conn_to_ptp_db()
 	cursor = conn.cursor()
-        # todo: don't use distinct
 	sql =  "select inet6_ntoa(cli_ip), cli_pt, inet6_ntoa(svr_ip), svr_pt, bytes_to_svr, bytes_to_cli, ts_first_pkt, ts_last_pkt from streams;"
 	cursor.execute(sql)
 	rows = cursor.fetchall()

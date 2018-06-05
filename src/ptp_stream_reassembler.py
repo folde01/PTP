@@ -1,5 +1,7 @@
 from ptp_stream import Stream
 import nids
+from ptp_constants import Constants
+
 
 class Stream_Reassembler:
 
@@ -19,8 +21,8 @@ class Stream_Reassembler:
             svr_ip, svr_pt = s.addr[1]
             bytes_to_svr = s.server.count
             bytes_to_cli = s.client.count
-            ts_first_pkt = '2011-11-11 11:11:11' 
-            ts_last_pkt = '2011-11-11 11:11:11' 
+            ts_first_pkt = Constants().DEFAULT_TS_FIRST_PKT
+            ts_last_pkt = Constants().DEFAULT_TS_LAST_PKT 
             s = Stream(cli_ip, cli_pt, svr_ip, svr_pt, bytes_to_svr, bytes_to_cli,
                     ts_first_pkt, ts_last_pkt)
             streams.append(s)

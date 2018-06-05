@@ -1,28 +1,43 @@
-from scapy.all import IP, TCP
+from scapy.all import IP, TCP, rdpcap
+from ptp_network import Network
+from ptp_constants import Constants
+
 
 class Pcap:
-    def __init__(self. pcap_filename='sniffed.pcap'):
+    def __init__(self, pcap_filename=Constants().DEFAULT_PCAP_FILENAME):
         self._pcap_filename = pcap_filename
+        self._pkts = rdpcap(self._pcap_filename)
+        self._cli_ip = Network().get_cli_ip()
 
-    def lo_and_hi_timestamps(self, stream):
-        # sometimes cli will be src, sometimes dst. We care about when it is src.
+    def get_quads(self):
+        quads = []
+
+        for pkt in self._pkts:
+            quad = (pkt[IP].src, pkt[TCP].sport, pkt[IP].dst, pkt[TCP].dport)
+
+            if quad not in quads:
+                quads.append(quad)
+
+        return quads
+
+    def get_cli_as_src_quads(self):
+        quads = self.get_quads()
+        return [ quad for quad in quads if quad[0] == self._cli_ip ]
+
+    def lo_and_hi_timestamps(self, quad):
         lo_ts = None 
         hi_ts = None 
-        pkts_from_cli = (pkt for pkt in pkts if IP in pkt and pkt[IP].src = stream.cli_ip)
+        cli_ip, cli_pt, svr_ip, svr_pt = quad
 
-        for pkt in pkts_from_cli: 
-            if lo_ts is None or pkt.time < lo_ts:
-                lo_ts = pkt.time
+        for pkt in self._pkts: 
+            cur_quad = (pkt[IP].src, pkt[TCP].sport, pkt[IP].dst, pkt[TCP].dport)
+            
+            if quad == cur_quad:
 
-            if hi_ts is None or pkt.time > hi_ts:
-                hi_ts = pkt.time
+                if lo_ts is None or pkt.time < lo_ts:
+                    lo_ts = pkt.time
+
+                if hi_ts is None or pkt.time > hi_ts:
+                    hi_ts = pkt.time
 
         return lo_ts, hi_ts
-
-
-
-
-
-
-
-
