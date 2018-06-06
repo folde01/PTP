@@ -6,10 +6,15 @@ from ptp_constants import Constants
 class Pcap:
     def __init__(self, pcap_filename=Constants().DEFAULT_PCAP_FILENAME):
         self._pcap_filename = pcap_filename
-        self._pkts = rdpcap(self._pcap_filename)
+        self._pkts = None
         self._cli_ip = Network().get_cli_ip()
 
+    def _read_pcap_file(self):
+        if self._pkts is None:
+            self._pkts = rdpcap(self._pcap_filename)
+
     def get_quads(self):
+        self._read_pcap_file()
         quads = []
 
         for pkt in self._pkts:
@@ -20,11 +25,8 @@ class Pcap:
 
         return quads
 
-    def get_cli_as_src_quads(self):
-        quads = self.get_quads()
-        return [ quad for quad in quads if quad[0] == self._cli_ip ]
-
     def lo_and_hi_timestamps(self, quad):
+        self._read_pcap_file()
         lo_ts = None 
         hi_ts = None 
         cli_ip, cli_pt, svr_ip, svr_pt = quad
@@ -41,3 +43,7 @@ class Pcap:
                     hi_ts = pkt.time
 
         return lo_ts, hi_ts
+
+    def _get_cli_as_src_quads(self):
+        quads = self.get_quads()
+        return [ quad for quad in quads if quad[0] == self._cli_ip ]

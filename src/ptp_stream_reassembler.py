@@ -21,10 +21,9 @@ class Stream_Reassembler:
             svr_ip, svr_pt = s.addr[1]
             bytes_to_svr = s.server.count
             bytes_to_cli = s.client.count
-            ts_first_pkt = Constants().DEFAULT_TS_FIRST_PKT
-            ts_last_pkt = Constants().DEFAULT_TS_LAST_PKT 
-            s = Stream(cli_ip, cli_pt, svr_ip, svr_pt, bytes_to_svr, bytes_to_cli,
-                    ts_first_pkt, ts_last_pkt)
+            s = Stream(cli_ip=cli_ip, cli_pt=cli_pt, svr_ip=svr_ip,
+                    svr_pt=svr_pt, bytes_to_svr=bytes_to_svr, 
+                    bytes_to_cli=bytes_to_cli)
             streams.append(s)
         return streams
 

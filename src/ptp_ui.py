@@ -4,12 +4,14 @@ from ptp_analyser import Analyser
 from ptp_stream_model import Stream_Model
 from ptp_stream_reassembler import Stream_Reassembler
 from ptp_stream_db import Stream_DB
+from ptp_pcap import Pcap
 
 app = Flask(__name__)
 sniffer = Sniffer() 
 stream_reassembler = Stream_Reassembler(sniffer.pcap_filename())
 stream_db = Stream_DB()
-stream_model = Stream_Model(sniffer, stream_reassembler, stream_db)
+pcap = Pcap()
+stream_model = Stream_Model(sniffer, stream_reassembler, stream_db, pcap)
 analyser = Analyser(sniffer, stream_model, stream_reassembler, stream_db)
 
 @app.route('/index')

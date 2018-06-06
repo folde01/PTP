@@ -5,3 +5,7 @@ class Stream_Quad:
         self.svr_ip = svr_ip
         self.svr_pt = svr_pt
 
+    def get_quad_tuple():
+        return (self.cli_ip, self.cli_pt, self.svr_ip, self.svr_pt)
+
+
