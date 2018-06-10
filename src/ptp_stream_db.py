@@ -105,7 +105,7 @@ class Stream_DB:
 	rows = cursor.fetchall()
 	cursor.close()
         conn.close()
-	return rows
+	return rows[0]
 
     def update_stream(self, stream):
         conn = self._get_conn_to_ptp_db()
@@ -119,8 +119,8 @@ class Stream_DB:
                     where id = %d""" % stream.get_stream_tuple()
             cursor.execute(sql)
             conn.commit()
-        except:
-            print("Update failed.")
+        except MySQLdb.OperationalError as e:
+            print("Update failed: ", e)
             conn.rollback()
         finally:
             cursor.close()
