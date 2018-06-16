@@ -33,7 +33,6 @@ sudo apt-get install pptpd -y
 sudo apt-get -y install ntp
 # todo: finish pptpd
 
-
 sudo apt-get -y install libnet1-dev
 
 # reboot if required
@@ -62,11 +61,21 @@ pip install flask
 pip install flask_table
 pip install scapy
 pip install psutil
-pip install mock # dev
 
 sudo apt-get install -y libmysqlclient-dev python-dev
 pip install mysqlclient
 
+# For development only (in place of python repl):
+python -m pip install jupyter
+# then follow this to run the jupyter notebook as a server on VM and make accessible remotely from host browser: http://jupyter-notebook.readthedocs.io/en/stable/public_server.html
+#(venv) jo@ubuntu:~/ptp/PTP/src$ jupyter notebook --generate-config
+#(venv) jo@ubuntu:~/ptp/PTP/src$ vim ~/.jupyter/jupyter_notebook_config.py
+#(venv) jo@ubuntu:~/ptp/PTP/src$ grep c.NotebookApp.ip ~/.jupyter/jupyter_notebook_config.py
+##c.NotebookApp.ip = 'localhost'
+#c.NotebookApp.ip = '*'
+#(venv) jo@ubuntu:~/ptp/PTP/src$ grep c.NotebookApp.open_browser ~/.jupyter/jupyter_notebook_config.py
+##c.NotebookApp.open_browser = True
+#c.NotebookApp.open_browser = False
 
 mkdir -p $PTP_PREREQS
 
