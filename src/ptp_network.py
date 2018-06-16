@@ -18,5 +18,3 @@ class Network:
             if snic.family == 2:
                 return snic.address
         return None
-
-	
