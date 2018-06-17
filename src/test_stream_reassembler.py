@@ -1,12 +1,14 @@
 from scapy.all import rdpcap, PacketList, TCP 
 from ptp_network import Network
 from ptp_constants import Constants
+from ptp_stream import Stream
 
 class Stream_Reassembler:
 
     def __init__(self, pcap_filename):
         self._pcap_filename = pcap_filename
         self._sessions_dict = None 
+        self._session_pairs = None
 
     def reassemble_streams(self):
 	stream_list = self._analyse_pcapfile()
@@ -18,10 +20,48 @@ class Stream_Reassembler:
             self._sessions_dict = pkts.sessions()
         return self._sessions_dict
 
+    def _get_list_of_streams(self):
+        """returns a list of Stream objects, based on session pairs"""
+
+        streams = []
+        pairs = self._get_session_pairs()
+
+        for pair in pairs:
+            quad, sessions = pairs.iteritems()
+            cli_ip, cli_pt, svr_ip, svr_pt = quad        
+            cli_to_svr_session = sessions[0]
+            svr_to_cli_session = sessions[1]
+            bytes_to_client = self._get_session_size(cli_to_svr_session)
+            bytes_to_svr = self._get_session_size(svr_to_cli_session)
+            ts_first_pkt_from_cli, ts_last_pkt_from_cli = self._get_timestamps(cli_to_svr_session)
+            ts_first_pkt_from_svr, ts_last_pkt_from_svr = self._get_timestamps(svr_to_cli_session)
+            ts_first_pkt = min(ts_first_pkt_from_cli, ts_first_pkt_from_svr)
+            ts_last_pkt = max(ts_last_pkt_from_cli, ts_last_pkt_from_svr)
+
+            stream = Stream(cli_ip=cli_ip, cli_pt=cli_pt, svr_ip=svr_ip, 
+                    svr_pt=svr_pt, bytes_to_client=bytes_to_client, 
+                    bytes_to_svr=bytes_to_svr, ts_first_pkt=ts_first_pkt, 
+                    ts_last_pkt=ts_last_pkt) 
+
+            streams.append(stream)
+
+        return streams
+
+    def _get_session_size(self, session):
+        """returns size of total TCP payload for all packets in bytes"""
+        pass
+            
+    def _get_timestamps(self, session):
+        """returns two-tuple containing lowest and highest timestamps in UNIX epoch seconds"""
+        pass
+
     def _get_session_pairs(self):
         """returns a dict where the key is the 'quad' tuple (cli_ip, cli_pt,
         svr_ip, svr_pt) and the value is a two-tuple of opposing sessions for
         that quad.""" 
+
+        if self._session_pairs is not None:
+            return self._session_pairs
 
         session_pairs = {}
         sessions = self._get_sessions_dict()
@@ -50,8 +90,8 @@ class Stream_Reassembler:
 
             session_pairs[quad] = (session, opp_session)
 
-        return session_pairs
-
+        self._session_pairs = session_pairs
+        return self._session_pairs
 
     def _print_sessions_dict_summary(self):
         for k,v in self._get_sessions_dict().iteritems():
