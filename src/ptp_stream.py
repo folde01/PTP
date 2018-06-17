@@ -26,6 +26,11 @@ class Stream(object):
         self.ts_first_pkt = kwargs.get('ts_first_pkt', constants.DEFAULT_TS_FIRST_PKT)
         self.ts_last_pkt = kwargs.get('ts_last_pkt', constants.DEFAULT_TS_LAST_PKT)
 
+    def __repr__(self):
+        return "<%s:%d %s:%d, bytes_to_svr: %d, bytes_to_cli: %d, ts_first_pkt: %f, ts_last_pkt: %f>" % \
+        (self.cli_ip, self.cli_pt, self.svr_ip, self.svr_pt, self.bytes_to_svr, self.bytes_to_cli,
+           self.ts_first_pkt, self.ts_last_pkt)
+
     def get_quad_tuple(self):
         return (self.cli_ip, self.cli_pt, self.svr_ip, self.svr_pt)
 

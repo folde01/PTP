@@ -15,12 +15,14 @@ class Stream_DB:
 	cursor = conn.cursor()
         try:
             for stream in stream_collection: 
+                print stream.cli_ip, stream.cli_pt, stream.svr_ip, stream.svr_pt, stream.bytes_to_svr, stream.bytes_to_cli, stream.ts_first_pkt, stream.ts_last_pkt
                 sql = """insert into 
                     streams (cli_ip, cli_pt, svr_ip, svr_pt, bytes_to_svr, bytes_to_cli, ts_first_pkt, ts_last_pkt) 
                     values (inet6_aton(\'%s\'), %d, inet6_aton(\'%s\'), %d, %d, %d, '%s', '%s')""" % \
                     (stream.cli_ip, stream.cli_pt, stream.svr_ip, stream.svr_pt,
-                     stream.bytes_to_svr, stream.bytes_to_cli,
-                     stream.ts_first_pkt, stream.ts_last_pkt)
+                     int(stream.bytes_to_svr), int(stream.bytes_to_cli),
+                     self._epoch_to_datetime(stream.ts_first_pkt), 
+                     self._epoch_to_datetime(stream.ts_last_pkt))
                 cursor.execute(sql)
             conn.commit()
         except MySQLdb.OperationalError as e:
@@ -29,6 +31,10 @@ class Stream_DB:
         finally:
             cursor.close()
             conn.close()
+
+    def _epoch_to_datetime(self, epoch_seconds):
+        date = datetime.fromtimestamp(epoch_seconds).strftime('%c')
+        return date
 
     def persist_stream(self, stream):
         conn = self._get_conn_to_ptp_db()
