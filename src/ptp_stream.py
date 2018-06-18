@@ -27,7 +27,7 @@ class Stream(object):
         self.ts_last_pkt = kwargs.get('ts_last_pkt', constants.DEFAULT_TS_LAST_PKT)
 
     def __repr__(self):
-        return "<%s:%d %s:%d, bytes_to_svr: %d, bytes_to_cli: %d, ts_first_pkt: %f, ts_last_pkt: %f>" % \
+        return "<%s:%d %s:%d, bytes_to_svr: %d, bytes_to_cli: %d, ts_first_pkt: %.3f, ts_last_pkt: %.3f>" % \
         (self.cli_ip, self.cli_pt, self.svr_ip, self.svr_pt, self.bytes_to_svr, self.bytes_to_cli,
            self.ts_first_pkt, self.ts_last_pkt)
 

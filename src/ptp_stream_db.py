@@ -1,4 +1,5 @@
 from datetime import datetime
+import time
 import MySQLdb
 from ptp_stream import Stream
 from ptp_stream_quad import Stream_Quad
@@ -33,7 +34,8 @@ class Stream_DB:
             conn.close()
 
     def _epoch_to_datetime(self, epoch_seconds):
-        date = datetime.fromtimestamp(epoch_seconds).strftime('%c')
+        #date = datetime.fromtimestamp(epoch_seconds).strftime('%c')
+        date = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(epoch_seconds))
         return date
 
     def persist_stream(self, stream):

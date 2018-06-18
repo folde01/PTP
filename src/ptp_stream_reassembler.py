@@ -29,11 +29,12 @@ class Stream_Reassembler:
             cli_ip, cli_pt, svr_ip, svr_pt = quad        
             cli_to_svr_session = sessions[0]
             svr_to_cli_session = sessions[1]
-            bytes_to_cli = self._get_session_size(cli_to_svr_session)
-            bytes_to_svr = self._get_session_size(svr_to_cli_session)
+            bytes_to_svr = self._get_session_payload_size(cli_to_svr_session)
+            bytes_to_cli = self._get_session_payload_size(svr_to_cli_session)
             ts_first_pkt, ts_last_pkt = \
                 self._get_start_and_end_ts(cli_to_svr_session, svr_to_cli_session)
 
+            print "ts_first_pkt: %f, ts_last_pkt: %f" % (ts_first_pkt, ts_last_pkt)
             stream = Stream(cli_ip=cli_ip, cli_pt=int(cli_pt), svr_ip=svr_ip, 
                     svr_pt=int(svr_pt), bytes_to_cli=bytes_to_cli, 
                     bytes_to_svr=bytes_to_svr, ts_first_pkt=float(ts_first_pkt), 
@@ -43,7 +44,7 @@ class Stream_Reassembler:
 
         return streams
 
-    def _get_session_size(self, session):
+    def _get_session_payload_size(self, session):
         """returns size of total TCP payload for all packets in bytes"""
         if session is None:
             return 0
@@ -89,25 +90,40 @@ class Stream_Reassembler:
         cli_ip = Network().get_cli_ip()
 
         for key in keys:
+            # e.g. key = 'TCP 151.101.16.175:443 > 192.168.1.12:44071'
+            #  opp_key = 'TCP 192.168.1.12:44071 > 151.101.16.175:443'
             prot, src, arrow, dst = key.split()
             src_ip, src_pt = src.split(':') 
             dst_ip, dst_pt = dst.split(':') 
 
-            if src_ip != cli_ip or dst_ip == Constants().KILL_PKT_IP: 
+            if dst_ip == Constants().KILL_PKT_IP: 
                 continue
 
             opp_key = "%s %s:%s %s %s:%s" % \
                 (prot, dst_ip, str(dst_pt), arrow, src_ip, str(src_pt))  
             session = sessions[key]
-            quad = (src_ip, src_pt, dst_ip, dst_pt)
 
-            if opp_key in keys:
-                opp_session = sessions[opp_key]
+            if src_ip == cli_ip:
+                quad = (src_ip, src_pt, dst_ip, dst_pt)
+                if quad in session_pairs.keys(): 
+                    # we must've hit opp_key earlier 
+                    continue
+                if opp_key in keys:
+                    print "%s is both directions" % str(quad)
+                    opp_session = sessions[opp_key]
+                else:
+                    print "%s is client-to-server only" % str(quad)
+                    opp_session = None
+                session_pairs[quad] = (session, opp_session)
             else:
-                print "%s is client-to-server only" % str(quad)
-                opp_session = None
-
-            session_pairs[quad] = (session, opp_session)
+                quad = (dst_ip, dst_pt, src_ip, src_pt)
+                if opp_key in keys:
+                    print "%s is both directions" % str(quad)
+                    opp_session = sessions[opp_key]
+                else:
+                    print "%s is server-to-client only" % str(quad)
+                    opp_session = None
+                session_pairs[quad] = (opp_session, session)
 
         self._session_pairs = session_pairs
         return self._session_pairs
