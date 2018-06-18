@@ -115,6 +115,20 @@ class Stream_DB:
         conn.close()
 	return rows[0]
 
+    def clear_streams(self):
+        conn = self._get_conn_to_ptp_db()
+	cursor = conn.cursor()
+        try:
+            sql =  "delete from streams" 
+            cursor.execute(sql)
+            conn.commit()
+        except MySQLdb.OperationalError as e:
+            print("Delete failed: ", e)
+            conn.rollback()
+        finally:
+            cursor.close()
+            conn.close()
+
     def update_stream(self, stream):
         conn = self._get_conn_to_ptp_db()
 	cursor = conn.cursor()

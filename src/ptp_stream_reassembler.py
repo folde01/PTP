@@ -2,6 +2,7 @@ from scapy.all import rdpcap, PacketList, TCP
 from ptp_network import Network
 from ptp_constants import Constants
 from ptp_stream import Stream
+import os
 
 class Stream_Reassembler:
 
@@ -12,7 +13,16 @@ class Stream_Reassembler:
 
     def reassemble_streams(self):
 	stream_list = self._get_list_of_streams()
+        self._reinitialise()
         return stream_list
+
+    def _reinitialise(self):
+        self._sessions_dict = None
+        self._session_pairs = None
+        try:
+            os.remove(self._pcap_filename)
+        except OSError, e:
+            print "Error deleting pcap file %s: %s" % (e.filename, e.strerror)
 
     def _get_sessions_dict(self):
         if self._sessions_dict == None:
@@ -34,7 +44,6 @@ class Stream_Reassembler:
             ts_first_pkt, ts_last_pkt = \
                 self._get_start_and_end_ts(cli_to_svr_session, svr_to_cli_session)
 
-            print "ts_first_pkt: %f, ts_last_pkt: %f" % (ts_first_pkt, ts_last_pkt)
             stream = Stream(cli_ip=cli_ip, cli_pt=int(cli_pt), svr_ip=svr_ip, 
                     svr_pt=int(svr_pt), bytes_to_cli=bytes_to_cli, 
                     bytes_to_svr=bytes_to_svr, ts_first_pkt=float(ts_first_pkt), 
@@ -109,19 +118,22 @@ class Stream_Reassembler:
                     # we must've hit opp_key earlier 
                     continue
                 if opp_key in keys:
-                    print "%s is both directions" % str(quad)
+                    #print "%s is both directions" % str(quad)
                     opp_session = sessions[opp_key]
                 else:
-                    print "%s is client-to-server only" % str(quad)
+                    #print "%s is client-to-server only" % str(quad)
                     opp_session = None
                 session_pairs[quad] = (session, opp_session)
             else:
                 quad = (dst_ip, dst_pt, src_ip, src_pt)
+                if quad in session_pairs.keys(): 
+                    # we must've hit opp_key earlier 
+                    continue
                 if opp_key in keys:
-                    print "%s is both directions" % str(quad)
+                    #print "%s is both directions" % str(quad)
                     opp_session = sessions[opp_key]
                 else:
-                    print "%s is server-to-client only" % str(quad)
+                    #print "%s is server-to-client only" % str(quad)
                     opp_session = None
                 session_pairs[quad] = (opp_session, session)
 
