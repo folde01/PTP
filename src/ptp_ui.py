@@ -4,7 +4,6 @@ from ptp_analyser import Analyser
 from ptp_stream_model import Stream_Model
 from ptp_stream_reassembler import Stream_Reassembler
 from ptp_stream_db import Stream_DB
-from ptp_pcap import Pcap
 
 app = Flask(__name__)
 sniffer = Sniffer() 
