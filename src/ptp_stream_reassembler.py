@@ -19,10 +19,10 @@ class Stream_Reassembler:
     def _reinitialise(self):
         self._sessions_dict = None
         self._session_pairs = None
-        try:
-            os.remove(self._pcap_filename)
-        except OSError, e:
-            print "Error deleting pcap file %s: %s" % (e.filename, e.strerror)
+        #try:
+            #os.remove(self._pcap_filename)
+        #except OSError, e:
+            #print "Error deleting pcap file %s: %s" % (e.filename, e.strerror)
 
     def _get_sessions_dict(self):
         if self._sessions_dict == None:
@@ -43,6 +43,8 @@ class Stream_Reassembler:
             bytes_to_cli = self._get_session_payload_size(svr_to_cli_session)
             ts_first_pkt, ts_last_pkt = \
                 self._get_start_and_end_ts(cli_to_svr_session, svr_to_cli_session)
+            using_ssl = \
+                self._is_ssl_handshake_complete(cli_to_svr_session, svr_to_cli_session)
 
             stream = Stream(cli_ip=cli_ip, cli_pt=int(cli_pt), svr_ip=svr_ip, 
                     svr_pt=int(svr_pt), bytes_to_cli=bytes_to_cli, 
@@ -52,6 +54,7 @@ class Stream_Reassembler:
             streams.append(stream)
 
         return streams
+
 
     def _get_session_payload_size(self, session):
         """returns size of total TCP payload for all packets in bytes"""
@@ -84,6 +87,21 @@ class Stream_Reassembler:
     def _get_pkt_payload_length(self, pkt):
         return len(pkt[TCP].payload)
 
+    def _is_ssl_handshake_complete(self, cli_to_svr_session, svr_to_cli_session):
+        """returns whether we saw last step of the SSL handshake (on both sides) 
+        before the encrypted tunnel is established, namely the Change Cipher Suite
+        message"""
+        pass
+
+    def _sort_session_by_seq_no(self, session):
+        """Sorts packets of session in-place by TCP sequence number, as packets are
+        sometimes sniffed out of sequence number order. We need them in that order to 
+        see e.g. TCP and SSL handshake completions."""
+        def get_seq(pkt):
+            return pkt[TCP].seq
+        session.sort(key=get_seq)
+
+        
     def _get_session_pairs(self):
         """returns a dict where the key is the 'quad' tuple (cli_ip, cli_pt,
         svr_ip, svr_pt) and the value is a two-tuple of opposing sessions for
@@ -140,6 +158,15 @@ class Stream_Reassembler:
         self._session_pairs = session_pairs
         return self._session_pairs
 
+    def _get_opposing_session_key(self, key):
+        prot, src, arrow, dst = key.split()
+        src_ip, src_pt = src.split(':') 
+        dst_ip, dst_pt = dst.split(':') 
+        opp_key = "%s %s:%s %s %s:%s" % \
+            (prot, dst_ip, str(dst_pt), arrow, src_ip, str(src_pt))  
+        return opp_key
+        
+
     def _print_sessions_dict_summary(self):
         for k,v in self._get_sessions_dict().iteritems():
             print k, "\n", v,"\n"
@@ -182,10 +209,26 @@ class Stream_Reassembler:
                 print "chksum changed\n"
 
 
-    def _TCP_handshake_is_observed(self, session):
+    def _TCP_handshake_is_observed(self, session_pair):
+        """prereqs: deduplicated, ordered session pair"""
         pass
 
-    def _remove_duplicate_packets(self, session):
+    def _remove_duplicate_packets(self, session_pair):
+        '''Packets are considered duplicate if they are one of these cases:
+        both directions:
+        * duplicate ack: no payload, flags=A, same seq and ack numbers.
+        * duplicate data: flags=PA or A, same seq/ack/TCP chksum, non-zero payload
+        cli_to_svr:
+        * duplicate syn: flags=S, same seq numbers 
+        svr_to_cli:
+        * duplicate synack: flags=SA, same seq/ack
+        todo:
+        * duplicate fin: 
+        * duplicate finack:
+        '''
+        pass
+
+    def _remove_duplicate_packets2(self, session):
         '''This is required based on the TCP protocol. This method only covers cases where packets  
         being compared have the same sequence numbers and have payloads. There may be other cases,
         e.g. duplicate acknowledgements, but these need to be identified in the context of the
@@ -211,6 +254,3 @@ class Stream_Reassembler:
                 other_pkts.append(pkt)
         
         return PacketList(unique_loaded_pkts + other_pkts)
-
-    def _sort_packets_by_sequence_number(self, session):
-        pass
