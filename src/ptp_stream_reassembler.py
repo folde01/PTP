@@ -3,6 +3,7 @@ from ptp_network import Network
 from ptp_constants import Constants
 from ptp_stream import Stream
 import os
+import hashlib
 
 class Stream_Reassembler:
 
@@ -213,11 +214,11 @@ class Stream_Reassembler:
         """prereqs: deduplicated, ordered session pair"""
         pass
 
-    def _remove_duplicate_packets(self, session_pair):
-        '''Packets are considered duplicate if they are one of these cases:
+    def _remove_duplicate_packets(self, session):
+        '''Packets are considered duplicate if they fall under one of these cases:
         both directions:
         * duplicate ack: no payload, flags=A, same seq and ack numbers.
-        * duplicate data: flags=PA or A, same seq/ack/TCP chksum, non-zero payload
+        * duplicate data: flags=PA or A, same seq/ack/TCP chksum, same non-zero payload
         cli_to_svr:
         * duplicate syn: flags=S, same seq numbers 
         svr_to_cli:
@@ -225,32 +226,86 @@ class Stream_Reassembler:
         todo:
         * duplicate fin: 
         * duplicate finack:
-        '''
-        pass
-
-    def _remove_duplicate_packets2(self, session):
-        '''This is required based on the TCP protocol. This method only covers cases where packets  
-        being compared have the same sequence numbers and have payloads. There may be other cases,
-        e.g. duplicate acknowledgements, but these need to be identified in the context of the
-        other side's session. We may need to care about those cases, e.g. because we need to know
-        whether and when the TCP-handshake completes, as that seems to determine whether/when 
-        we should start looking for the SSL handshake. This may return an out-of-order result but
-        we'll order elsewhere.'''
-
-        unique_loaded_pkts = [] 
-        other_pkts = []
-
-        def seq_seen(pkt):
-            for p in unique_loaded_pkts:
-                if pkt[TCP].seq == p[TCP].seq:
-                    return True
-            return False
-
-        for pkt in session:
-            if self._packet_has_payload(pkt):
-                if not seq_seen(pkt):
-                    unique_loaded_pkts.append(pkt)
-            else:
-                other_pkts.append(pkt)
         
-        return PacketList(unique_loaded_pkts + other_pkts)
+        We hash the packets (credit: https://stackoverflow.com/a/3350656) depending on
+        context. We'll need to make separate hash tables for each case to check.
+        '''
+
+        def payload_len(pkt):
+            return len(pkt[TCP].payload)
+
+        def flags(pkt):
+            return str(pkt[TCP].flags)
+
+        def seq(pkt):
+            return pkt[TCP].seq
+
+        def ack(pkt):
+            return pkt[TCP].ack
+
+        def chksum(pkt):
+            return pkt[TCP].chksum
+
+        def md5(*args):
+            return hashlib.md5("".join(args)).hexdigest()
+
+        def is_ack(pkt):
+            return flags(pkt) == 'A' and payload_len(pkt) = 0
+
+        def hash_ack(pkt):
+            return md5(seq(pkt), ack(pkt) 
+
+        def is_data(pkt):
+            return payload_len(pkt) != 0 and (flags(pkt) == 'A' or flags(pkt) == 'PA')
+
+        def hash_data(pkt):
+            return md5(seq(pkt), ack(pkt), chksum(pkt)) 
+
+        def is_syn(pkt):
+            return flags(pkt) == 'S' and ack(pkt) == 0
+
+        def hash_syn(pkt):
+            return md5(seq(pkt)) 
+        
+        def is_synack(pkt):
+            return flags(pkt) == 'SA'
+
+        def hash_synack(pkt):
+            return md5(seq(pkt), ack(pkt)) 
+
+        ack_pkts = {}
+        data_pkts = {}
+        syn_pkts = {}
+        synack_pkts = {}
+
+        # build our hash tables
+        for pkt in session:
+            if is_ack(pkt):
+                ack_pkts[hash_ack(pkt)] = pkt
+
+            elif is_data(pkt):
+                data_pkts[hash_data(pkt)] = pkt
+
+            elif is_syn(pkt):
+                syn_pkts[hash_syn(pkt)] = pkt
+                
+            elif is_synack(pkt):
+                synack_pkts[hash_synack(pkt)] = pkt
+
+        deduped_pkt_list = [] 
+
+        # add pkt to results if not already in a hash table 
+        for pkt in session:
+            if is_ack(pkt) and (hash_ack(pkt) not in ack_pkts):
+                    deduped_pkt_list.append(pkt)
+
+            elif is_data(pkt) and (hash_data(pkt) not in data_pkts):
+                    deduped_pkt_list.append(pkt)
+
+            elif is_syn(pkt) and (hash_syn(pkt) not in syn_pkts):
+                    deduped_pkt_list.append(pkt)
+
+            else is_synack(pkt) and (hash_synack(pkt) not in synack_pkts):
+                    deduped_pkt_list.append(pkt)
+                
+        return PacketList(deduped_pkt_list)
