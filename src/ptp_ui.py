@@ -1,16 +1,9 @@
 from flask import Flask, render_template, url_for
-from ptp_sniffer import Sniffer
 from ptp_analyser import Analyser
-from ptp_stream_model import Stream_Model
-from ptp_stream_reassembler import Stream_Reassembler
-from ptp_stream_db import Stream_DB
 
 app = Flask(__name__)
-sniffer = Sniffer() 
-stream_reassembler = Stream_Reassembler(sniffer.pcap_filename())
-stream_db = Stream_DB()
-stream_model = Stream_Model(sniffer, stream_reassembler, stream_db)
-analyser = Analyser(stream_model)
+analyser = Analyser()
+sniffer = analyser.get_sniffer() 
 
 @app.route('/index')
 @app.route('/')

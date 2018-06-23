@@ -21,6 +21,9 @@ class Sniffer:
     def __init__(self, pcap_filename='sniffed.pcap'):
         self._pcap_filename = pcap_filename 
 
+    def get_pcap_filename(self):
+        return self._pcap_filename
+
     def start(self):
         """Start sniffer."""
         Sniffer._sniffer_thread = threading.Thread(target=self._run_sniffer_thread)
