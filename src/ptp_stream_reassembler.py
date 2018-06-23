@@ -28,8 +28,15 @@ class Stream_Reassembler:
     def _get_sessions_dict(self):
         if self._sessions_dict == None:
             pkts = rdpcap(self._pcap_filename) 
-            self._sessions_dict = pkts.sessions()
-        return self._sessions_dict
+            sessions = pkts.sessions()
+
+            for session in sessions.values():
+                self._remove_duplicate_packets(session)
+                self._sort_session_by_seq_no(session)
+
+        self._sessions_dict = sessions
+        return self._sessions_dict 
+
 
     def _get_list_of_streams(self):
         """returns a list of Stream objects, based on session pairs"""
@@ -229,83 +236,87 @@ class Stream_Reassembler:
         
         We hash the packets (credit: https://stackoverflow.com/a/3350656) depending on
         context. We'll need to make separate hash tables for each case to check.
+        To make it easier to read, make a few reusable, function-like methods 
+        first and use them to build up to the bigger algorithm.
         '''
 
-        def payload_len(pkt):
-            return len(pkt[TCP].payload)
+        def payload_len(pkt): return len(pkt[TCP].payload)
 
-        def flags(pkt):
-            return str(pkt[TCP].flags)
+        def flags(pkt): return str(pkt[TCP].flags)
 
-        def seq(pkt):
-            return pkt[TCP].seq
+        def seq(pkt): return pkt[TCP].seq
 
-        def ack(pkt):
-            return pkt[TCP].ack
+        def ack(pkt): return pkt[TCP].ack
 
-        def chksum(pkt):
-            return pkt[TCP].chksum
+        def chksum(pkt): return pkt[TCP].chksum
 
         def md5(*args):
-            return hashlib.md5("".join(args)).hexdigest()
+            str_args = map(str, args)
+            return hashlib.md5("".join(str_args)).hexdigest()
 
         def is_ack(pkt):
-            return flags(pkt) == 'A' and payload_len(pkt) = 0
+            return flags(pkt) == 'A' and payload_len(pkt) == 0
 
-        def hash_ack(pkt):
-            return md5(seq(pkt), ack(pkt) 
+        def hash_ack(pkt): return md5(seq(pkt)), ack(pkt) 
 
         def is_data(pkt):
             return payload_len(pkt) != 0 and (flags(pkt) == 'A' or flags(pkt) == 'PA')
 
-        def hash_data(pkt):
-            return md5(seq(pkt), ack(pkt), chksum(pkt)) 
+        def hash_data(pkt): return md5(seq(pkt), ack(pkt), chksum(pkt)) 
 
         def is_syn(pkt):
             return flags(pkt) == 'S' and ack(pkt) == 0
 
-        def hash_syn(pkt):
-            return md5(seq(pkt)) 
+        def hash_syn(pkt): return md5(seq(pkt)) 
         
-        def is_synack(pkt):
-            return flags(pkt) == 'SA'
+        def is_synack(pkt): return flags(pkt) == 'SA'
 
-        def hash_synack(pkt):
-            return md5(seq(pkt), ack(pkt)) 
+        def hash_synack(pkt): return md5(seq(pkt), ack(pkt)) 
 
         ack_pkts = {}
         data_pkts = {}
         syn_pkts = {}
         synack_pkts = {}
 
-        # build our hash tables
+        deduped = [] 
+
+        # if it's one of our cases and we haven't seen it then add to appropriate hash table and deduped.
+        # if not one of our cases, just add it to deduped.
         for pkt in session:
             if is_ack(pkt):
-                ack_pkts[hash_ack(pkt)] = pkt
+                #print "ACK"
+                if (hash_ack(pkt) not in ack_pkts):
+                    #print "ACK not seen"
+                    deduped.append(pkt)
+                    ack_pkts[hash_ack(pkt)] = pkt
 
             elif is_data(pkt):
-                data_pkts[hash_data(pkt)] = pkt
+                #print "DATA"
+                if (hash_data(pkt) not in data_pkts):
+                    #print "DATA not seen"
+                    deduped.append(pkt)
+                    data_pkts[hash_data(pkt)] = pkt
 
             elif is_syn(pkt):
-                syn_pkts[hash_syn(pkt)] = pkt
-                
+                #print "SYN"
+                if (hash_syn(pkt) not in syn_pkts):
+                    #print "SYN not seen"
+                    deduped.append(pkt)
+                    syn_pkts[hash_syn(pkt)] = pkt
+
             elif is_synack(pkt):
-                synack_pkts[hash_synack(pkt)] = pkt
+                #print "SYNACK"
+                if (hash_synack(pkt) not in synack_pkts):
+                    #print "SYNACK not seen"
+                    deduped.append(pkt)
+                    synack_pkts[hash_synack(pkt)] = pkt
 
-        deduped_pkt_list = [] 
-
-        # add pkt to results if not already in a hash table 
-        for pkt in session:
-            if is_ack(pkt) and (hash_ack(pkt) not in ack_pkts):
-                    deduped_pkt_list.append(pkt)
-
-            elif is_data(pkt) and (hash_data(pkt) not in data_pkts):
-                    deduped_pkt_list.append(pkt)
-
-            elif is_syn(pkt) and (hash_syn(pkt) not in syn_pkts):
-                    deduped_pkt_list.append(pkt)
-
-            else is_synack(pkt) and (hash_synack(pkt) not in synack_pkts):
-                    deduped_pkt_list.append(pkt)
+            else:
+                #print "NO CASE"
+                deduped.append(pkt)
                 
-        return PacketList(deduped_pkt_list)
+        for pkt in session:
+            if pkt not in deduped:
+                session.remove(pkt)
+
+
