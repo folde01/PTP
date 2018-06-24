@@ -1,49 +1,19 @@
-from scapy.all import IP, TCP, rdpcap
-from ptp_network import Network
-from ptp_constants import Constants
-
+from scapy.all import rdpcap, PcapWriter 
 
 class Pcap:
-    def __init__(self, pcap_filename=Constants().DEFAULT_PCAP_FILENAME):
-        self._pcap_filename = pcap_filename
-        self._pkts = None
-        self._cli_ip = Network().get_cli_ip()
 
-    def _read_pcap_file(self):
-        if self._pkts is None:
-            self._pkts = rdpcap(self._pcap_filename)
+    def concatenate_files(self, pcap1, pcap2):
+        '''Appends second file's packets onto the first. For creating pcap files used in 
+        unit testing.'''
 
-    def get_quads(self):
-        self._read_pcap_file()
-        quads = []
+        pkts1 = rdpcap(pcap1)
+        #print pkts1, len(pkts1)
+        pkts1_writer = PcapWriter(pcap1, append=True, sync=True)
+        pkts2 = rdpcap(pcap2)
+        #print pkts2, len(pkts2)
 
-        for pkt in self._pkts:
-            quad = (pkt[IP].src, pkt[TCP].sport, pkt[IP].dst, pkt[TCP].dport)
+        for pkt in pkts2:
+            pkts1_writer.write(pkt)
 
-            if quad not in quads:
-                quads.append(quad)
-
-        return quads
-
-    def lo_and_hi_timestamps(self, quad):
-        self._read_pcap_file()
-        lo_ts = None 
-        hi_ts = None 
-        cli_ip, cli_pt, svr_ip, svr_pt = quad
-
-        for pkt in self._pkts: 
-            cur_quad = (pkt[IP].src, pkt[TCP].sport, pkt[IP].dst, pkt[TCP].dport)
-            
-            if quad == cur_quad:
-
-                if lo_ts is None or pkt.time < lo_ts:
-                    lo_ts = pkt.time
-
-                if hi_ts is None or pkt.time > hi_ts:
-                    hi_ts = pkt.time
-
-        return lo_ts, hi_ts
-
-    def _get_cli_as_src_quads(self):
-        quads = self.get_quads()
-        return [ quad for quad in quads if quad[0] == self._cli_ip ]
+        pkts1 = rdpcap(pcap1)
+        #print pkts1, len(pkts1)

@@ -1,11 +1,12 @@
-from scapy.all import rdpcap, PacketList, TCP 
+from scapy.all import rdpcap, PacketList, Ether, IP, TCP, Raw
 import hashlib
 from ptp_network import Network
 from ptp_constants import Constants
+import unittest
 
 class Session_Reassembler:
 
-    def __init__(self, pcap_filename):
+    def __init__(self, pcap_filename=None):
         self._pcap_filename = pcap_filename
         self._sessions_dict = None 
         self._session_pairs = None
@@ -67,8 +68,9 @@ class Session_Reassembler:
         pkts = rdpcap(self._pcap_filename) 
         sessions = pkts.sessions()
 
-        for session in sessions.values():
-            self._remove_duplicate_packets(session)
+        for key,session in sessions.iteritems():
+            deduped_session = self._remove_duplicate_packets(session)
+            sessions[key] = deduped_session
             self._sort_session_by_seq_no(session)
 
         self._sessions_dict = sessions
@@ -143,7 +145,7 @@ class Session_Reassembler:
         def hash_ack(pkt): return md5(seq(pkt)), ack(pkt) 
         def is_data(pkt):
             return payload_len(pkt) != 0 and (flags(pkt) == 'A' or flags(pkt) == 'PA')
-        def hash_data(pkt): return md5(seq(pkt), ack(pkt), chksum(pkt)) 
+        def hash_data(pkt): return md5(seq(pkt), ack(pkt), chksum(pkt), flags(pkt)) 
         def is_syn(pkt):
             return flags(pkt) == 'S' and ack(pkt) == 0
         def hash_syn(pkt): return md5(seq(pkt)) 
@@ -159,43 +161,46 @@ class Session_Reassembler:
 
         # if it's one of our cases and we haven't seen it then add to appropriate hash table and deduped.
         # if not one of our cases, just add it to deduped.
+        # Can we safely assume no packet can fall under two cases?
         for pkt in session:
             if is_ack(pkt):
                 #print "ACK"
-                if (hash_ack(pkt) not in ack_pkts):
+                if (hash_ack(pkt) not in ack_pkts.keys()):
                     #print "ACK not seen"
                     deduped.append(pkt)
                     ack_pkts[hash_ack(pkt)] = pkt
 
             elif is_data(pkt):
                 #print "DATA"
-                if (hash_data(pkt) not in data_pkts):
+                if (hash_data(pkt) not in data_pkts.keys()):
                     #print "DATA not seen"
                     deduped.append(pkt)
                     data_pkts[hash_data(pkt)] = pkt
 
             elif is_syn(pkt):
                 #print "SYN"
-                if (hash_syn(pkt) not in syn_pkts):
+                if (hash_syn(pkt) not in syn_pkts.keys()):
                     #print "SYN not seen"
                     deduped.append(pkt)
                     syn_pkts[hash_syn(pkt)] = pkt
 
             elif is_synack(pkt):
                 #print "SYNACK"
-                if (hash_synack(pkt) not in synack_pkts):
+                if (hash_synack(pkt) not in synack_pkts.keys()):
                     #print "SYNACK not seen"
                     deduped.append(pkt)
                     synack_pkts[hash_synack(pkt)] = pkt
+                    #print "deduped:", deduped
 
             else:
                 #print "NO CASE"
                 deduped.append(pkt)
-                
-        for pkt in session:
-            if pkt not in deduped:
-                session.remove(pkt)
 
+        #print "deduped finally:", deduped
+
+        return PacketList(deduped)
+        
+                
     def _remove_corrupt_packets(self, session):
         '''Compare the provided checksum with a generated one. We can generate
         one by deleting the checksum and then rebuilding the packet based on its
@@ -214,3 +219,57 @@ class Session_Reassembler:
                 session.append(new_pkt)
             else:
                 print "chksum changed\n"
+
+class Test_Session_Reassembler(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_only_duplicate_ack_removed(self):
+        non_dup = Ether()/IP()/TCP(flags='S', seq=0, ack=0)
+        ack1 = Ether()/IP()/TCP(flags='A', seq=1, ack=1)
+        ack2 = Ether()/IP()/TCP(flags='A', seq=1, ack=1)
+        pkts = PacketList([non_dup, ack1, ack2])        
+        sr = Session_Reassembler()
+        deduped_pkts = sr._remove_duplicate_packets(pkts)
+        self.assertTrue(deduped_pkts[0][TCP].flags == 'S') 
+        self.assertTrue(len(deduped_pkts) == 2)
+
+    def test_only_duplicate_data_removed(self):
+        non_dup = Ether()/IP()/TCP(flags='S', seq=0, ack=0)
+        data1 = Ether()/IP()/TCP(flags='PA', seq=10, ack=11, chksum=0xccfe )/Raw(load='abc') 
+        data2 = Ether()/IP()/TCP(flags='PA', seq=10, ack=11, chksum=0xccfe )/Raw(load='abc') 
+        pkts = PacketList([non_dup, data1, data2])        
+        sr = Session_Reassembler()
+        deduped_pkts = sr._remove_duplicate_packets(pkts)
+        self.assertTrue(deduped_pkts[0][TCP].flags == 'S') 
+        self.assertTrue(len(deduped_pkts) == 2)
+
+    def test_only_duplicate_syn_removed(self):
+        syn1 = Ether()/IP()/TCP(flags='S', seq=0, ack=0)
+        syn2 = Ether()/IP()/TCP(flags='S', seq=0, ack=0)
+        non_dup = Ether()/IP()/TCP(flags='A', seq=1, ack=1)
+        pkts = PacketList([syn1, syn2, non_dup])        
+        sr = Session_Reassembler()
+        deduped_pkts = sr._remove_duplicate_packets(pkts)
+        self.assertTrue(deduped_pkts[-1][TCP].flags == 'A') 
+        self.assertTrue(len(deduped_pkts) == 2)
+
+    def test_only_duplicate_synack_removed(self):
+        print "## TEST: test_only_duplicate_synack_removed"
+        synack1 = Ether()/IP()/TCP(flags='SA', seq=0, ack=1)
+        synack2 = Ether()/IP()/TCP(flags='SA', seq=0, ack=1)
+        non_dup = Ether()/IP()/TCP(flags='A', seq=10, ack=11)
+        pkts = PacketList([synack1, synack2, non_dup])        
+        sr = Session_Reassembler()
+        deduped_pkts = sr._remove_duplicate_packets(pkts)
+        self.assertTrue(deduped_pkts[-1][TCP].flags == 'A') 
+        self.assertTrue(len(deduped_pkts) == 2)
+
+if __name__ == '__main__':
+    unittest.main()
+
+

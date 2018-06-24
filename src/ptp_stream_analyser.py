@@ -2,14 +2,17 @@ from scapy.all import rdpcap, PacketList, TCP
 from ptp_network import Network
 from ptp_constants import Constants
 from ptp_stream import Stream
+import unittest
+from ptp_session_reassembler import Session_Reassembler
+
 
 class Stream_Analyser:
 
     def analyse_session_pair(self, session_pair):
         """Analyses a session pair and returns a stream object"""
 
-        print "session1:", repr(session_pair[0])
-        print "session2:", repr(session_pair[1])
+        #print "session1:", repr(session_pair[0])
+        #print "session2:", repr(session_pair[1])
         cli_to_svr_session = session_pair[0]
         svr_to_cli_session = session_pair[1]
 
@@ -17,20 +20,21 @@ class Stream_Analyser:
             cli_ip = cli_to_svr_session[0]['IP'].src
             cli_pt = cli_to_svr_session[0]['TCP'].sport
         except TypeError:
-            cli_ip = svr_to_cli_session[0]['IP'].dest
+            cli_ip = svr_to_cli_session[0]['IP'].dst
             cli_pt = svr_to_cli_session[0]['TCP'].dport
 
         try:
             svr_ip = svr_to_cli_session[0]['IP'].src
             svr_pt = svr_to_cli_session[0]['TCP'].sport 
         except TypeError:
-            svr_ip = cli_to_svr_session[0]['IP'].dest
+            svr_ip = cli_to_svr_session[0]['IP'].dst
             svr_pt = cli_to_svr_session[0]['TCP'].dport
 
         bytes_to_svr = self._get_session_payload_size(cli_to_svr_session)
         bytes_to_cli = self._get_session_payload_size(svr_to_cli_session)
         ts_first_pkt, ts_last_pkt = \
             self._get_start_and_end_ts(cli_to_svr_session, svr_to_cli_session)
+
         using_ssl = \
             self._is_ssl_handshake_complete(cli_to_svr_session, svr_to_cli_session)
 
@@ -40,7 +44,6 @@ class Stream_Analyser:
                 ts_last_pkt=float(ts_last_pkt)) 
 
         return stream
-
 
     def _get_session_payload_size(self, session):
         """returns size of total TCP payload for all packets in bytes"""
@@ -82,6 +85,38 @@ class Stream_Analyser:
     def _packet_has_payload(self, pkt):
         return len(pkt[TCP].payload) > 0
 
-    def _TCP_handshake_is_observed(self, session_pair):
-        """prereqs: deduplicated, ordered session pair"""
+    def _tcp_handshake_is_observed(self, session_pair):
+        """prereqs: deduplicated, ordered session pair.
+        returns """
+        s0 = session_pair[0]
+        s1 = session_pair[1]
+        if s0[0][TCP].flags == 'S' and s1[0][TCP].flags == 'SA' and s0[1][TCP].flags == 'A':
+            return True
+        return False
+
+
+
+class TestStreamAnalyser(unittest.TestCase):
+	
+    def setUp(self):
         pass
+
+    def tearDown(self):
+	pass
+
+    def test_tcp_handshake_observed(self):
+        pcap = Constants().TEST_PCAP_DIR + '/tcp-handshake-observed.pcap'
+        sr = Session_Reassembler(pcap)
+        sp = sr.get_session_pairs().values()[0]
+        sa = Stream_Analyser() 
+        self.assertTrue(sa._tcp_handshake_is_observed(sp))
+
+    def test_tcp_handshake_missing(self):
+        pcap = Constants().TEST_PCAP_DIR + '/tcp-handshake-missing.pcap'
+        sr = Session_Reassembler(pcap)
+        sp = sr.get_session_pairs().values()[0]
+        sa = Stream_Analyser() 
+        self.assertFalse(sa._tcp_handshake_is_observed(sp))
+
+if __name__ == '__main__':
+    unittest.main()
