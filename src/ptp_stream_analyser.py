@@ -76,25 +76,47 @@ class Stream_Analyser:
     def _get_pkt_payload_length(self, pkt):
         return len(pkt[TCP].payload)
 
-    def _is_ssl_handshake_complete(self, cli_to_svr_session, svr_to_cli_session):
+    def _ssl_handshake_is_observed(self, session_pair):
         """returns whether we saw last step of the SSL handshake (on both sides) 
         before the encrypted tunnel is established, namely the Change Cipher Suite
         message"""
-        pass
+        tcp_handshake
+        s0 = session_pair[0]
+        s1 = session_pair[1]
+        if self._contains_ssl_client_hello(s0[2]) and \
+                self._contains_ssl_server_hello(s1[2]) and \
+                self._contains_ssl_client_change_cipher_spec(s0[3]) and \
+                self._contains_ssl_server_change_cipher_spec(s1[3]):
+            return True
+        return False
 
+    def _contains_ssl_client_hello(pkt):
+        load = self._hex_payload(pkt)
+
+    def _hex_str(s):
+        return s.encode('HEX')
+
+    def _hex_payload(pkt)
+        if pkt.haslayer(Raw):
+            load = pkt[TCP][Raw].load
+            return _hex_str(load)
+        return None
+        
     def _packet_has_payload(self, pkt):
         return len(pkt[TCP].payload) > 0
 
     def _tcp_handshake_is_observed(self, session_pair):
         """prereqs: deduplicated, ordered session pair.
-        returns """
-        s0 = session_pair[0]
-        s1 = session_pair[1]
-        if s0[0][TCP].flags == 'S' and s1[0][TCP].flags == 'SA' and s0[1][TCP].flags == 'A':
+        returns two of first packet in cli_to_svr with a TCP payload. 
+        """
+        cli_to_svr = session_pair[0]
+        svr_to_cli = session_pair[1]
+
+        if cli_to_svr[0][TCP].flags == 'S' \
+                and svr_to_cli[0][TCP].flags == 'SA' \
+                and cli_to_svr[1][TCP].flags == 'A':
             return True
         return False
-
-
 
 class TestStreamAnalyser(unittest.TestCase):
 	
