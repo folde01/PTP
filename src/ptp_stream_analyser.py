@@ -90,9 +90,9 @@ class Stream_Analyser:
         # Assumes for now that TCP Fast Open is not used, so Client Hello is sent in
         # client's third packet.
         cli_load_0 = TCP_Payload(sp[0][2])
-        svr_load_0 = TCP_Payload(sp[1][1])
+        svr_load_0 = TCP_Payload(sp[1][2])
         cli_load_1 = TCP_Payload(sp[0][3])
-        svr_load_1 = TCP_Payload(sp[1][2])
+        svr_load_1 = TCP_Payload(sp[1][3])
 
         if cli_load_0.is_ssl_client_hello() and \
                 svr_load_0.is_ssl_server_hello() and \
