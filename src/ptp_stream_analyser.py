@@ -4,6 +4,7 @@ from ptp_constants import Constants
 from ptp_stream import Stream
 import unittest
 from ptp_session_reassembler import Session_Reassembler
+from ptp_tcp_payload import TCP_Payload
 
 
 class Stream_Analyser:
@@ -77,31 +78,29 @@ class Stream_Analyser:
         return len(pkt[TCP].payload)
 
     def _ssl_handshake_is_observed(self, session_pair):
-        """returns whether we saw last step of the SSL handshake (on both sides) 
-        before the encrypted tunnel is established, namely the Change Cipher Suite
-        message"""
-        tcp_handshake
-        s0 = session_pair[0]
-        s1 = session_pair[1]
-        if self._contains_ssl_client_hello(s0[2]) and \
-                self._contains_ssl_server_hello(s1[2]) and \
-                self._contains_ssl_client_change_cipher_spec(s0[3]) and \
-                self._contains_ssl_server_change_cipher_spec(s1[3]):
+        """returns whether we saw the TCP handshake followed by the exchange of messages
+        required to establish the encrypted tunnel, namely Client hello, Server Hello
+        and Change Cipher Suite.
+        """
+        sp = session_pair
+
+        if not self._tcp_handshake_is_observed(sp):
+            return False
+
+        # Assumes for now that TCP Fast Open is not used, so Client Hello is sent in
+        # client's third packet.
+        cli_load_0 = TCP_Payload(sp[0][2])
+        svr_load_0 = TCP_Payload(sp[1][1])
+        cli_load_1 = TCP_Payload(sp[0][3])
+        svr_load_1 = TCP_Payload(sp[1][2])
+
+        if cli_load_0.is_ssl_client_hello() and \
+                svr_load_0.is_ssl_server_hello() and \
+                cli_load_1.is_ssl_client_change_cipher_spec() and \
+                svr_load_1.is_ssl_server_change_cipher_spec():
             return True
         return False
 
-    def _contains_ssl_client_hello(pkt):
-        load = self._hex_payload(pkt)
-
-    def _hex_str(s):
-        return s.encode('HEX')
-
-    def _hex_payload(pkt)
-        if pkt.haslayer(Raw):
-            load = pkt[TCP][Raw].load
-            return _hex_str(load)
-        return None
-        
     def _packet_has_payload(self, pkt):
         return len(pkt[TCP].payload) > 0
 
