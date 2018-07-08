@@ -1,8 +1,7 @@
 from datetime import datetime
 import time
 import MySQLdb
-from ptp_stream import Stream
-from ptp_stream_quad import Stream_Quad
+from ptp_connection_status import Stream_Status, TCP_Status, SSL_Status
 import sys
 from ptp_logger import Logger
 
@@ -11,19 +10,21 @@ class Stream_DB:
 
     _logger = Logger(logfile="ptp_stream_db.log")
 
-    def persist_streams(self, stream_collection):
+    def persist_streams(self, stream_status_collection):
         conn = self._get_conn_to_ptp_db()
 	cursor = conn.cursor()
         try:
-            for stream in stream_collection: 
-                print stream.cli_ip, stream.cli_pt, stream.svr_ip, stream.svr_pt, stream.bytes_to_svr, stream.bytes_to_cli, stream.ts_first_pkt, stream.ts_last_pkt
+            for stream_status in stream_status_collection: 
+               tcp_status = stream_status.tcp_status
+               ssl_status = stream_status.ssl_status
+                #print tcp_status.cli_ip, tcp_status.cli_pt, tcp_status.svr_ip, tcp_status.svr_pt, tcp_status.bytes_to_svr, tcp_status.bytes_to_cli, tcp_status.ts_first_pkt, tcp_status.ts_last_pkt
                 sql = """insert into 
                     streams (cli_ip, cli_pt, svr_ip, svr_pt, bytes_to_svr, bytes_to_cli, ts_first_pkt, ts_last_pkt) 
                     values (inet6_aton(\'%s\'), %d, inet6_aton(\'%s\'), %d, %d, %d, '%s', '%s')""" % \
-                    (stream.cli_ip, stream.cli_pt, stream.svr_ip, stream.svr_pt,
-                     int(stream.bytes_to_svr), int(stream.bytes_to_cli),
-                     self._epoch_to_datetime(stream.ts_first_pkt), 
-                     self._epoch_to_datetime(stream.ts_last_pkt))
+                    (tcp_status.cli_ip, tcp_status.cli_pt, tcp_status.svr_ip, tcp_status.svr_pt,
+                     int(tcp_status.bytes_to_svr), int(tcp_status.bytes_to_cli),
+                     self._epoch_to_datetime(tcp_status.ts_first_pkt), 
+                     self._epoch_to_datetime(tcp_status.ts_last_pkt))
                 cursor.execute(sql)
             conn.commit()
         except MySQLdb.OperationalError as e:
@@ -38,7 +39,9 @@ class Stream_DB:
         date = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(epoch_seconds))
         return date
 
-    def persist_stream(self, stream):
+    def persist_stream(self, stream_status):
+        tcp_status = stream_status.tcp_status
+        ssl_status = stream_status.ssl_status
         conn = self._get_conn_to_ptp_db()
 	cursor = conn.cursor()
         try:
@@ -47,9 +50,9 @@ class Stream_DB:
                     bytes_to_cli, ts_first_pkt, ts_last_pkt) 
                    values (inet6_aton(\'%s\'), %d, inet6_aton(\'%s\'), 
                     %d, %d, %d, '%s', '%s')""" % \
-                   (stream.cli_ip, stream.cli_pt, stream.svr_ip, stream.svr_pt, 
-                    stream.bytes_to_svr, stream.bytes_to_cli,
-                    stream.ts_first_pkt, stream.ts_last_pkt)
+                   (tcp_status.cli_ip, tcp_status.cli_pt, tcp_status.svr_ip, tcp_status.svr_pt, 
+                    tcp_status.bytes_to_svr, tcp_status.bytes_to_cli,
+                    tcp_status.ts_first_pkt, tcp_status.ts_last_pkt)
             cursor.execute(sql)
             conn.commit()
         except MySQLdb.OperationalError as e:
@@ -65,10 +68,12 @@ class Stream_DB:
         for row in rows:
             id, cli_ip, cli_pt, svr_ip, svr_pt, bytes_to_svr, bytes_to_cli, \
                 ts_first_pkt, ts_last_pkt = row
-            stream = Stream(id=id, cli_ip=cli_ip, cli_pt=cli_pt, svr_ip=svr_ip,
+            tcp_status = TCP_Status(cli_ip=cli_ip, cli_pt=cli_pt, svr_ip=svr_ip,
                 svr_pt=svr_pt, bytes_to_svr=bytes_to_svr, bytes_to_cli=bytes_to_cli,
                 ts_first_pkt=ts_first_pkt, ts_last_pkt=ts_last_pkt)
-            streams.append(stream)
+            ssl_status = SSL_Status()
+            stream_status = Stream_Status(id=id, tcp_status=tcp_status, ssl_status=ssl_status)
+            streams.append(stream_status)
         return streams
 
     def _select_all_stream_rows(self):
@@ -84,7 +89,7 @@ class Stream_DB:
 	return rows
 
     def select_stream_by_quad_tuple(self, quad_tuple):
-        stream = None
+        stream_status = None
         print "quad_tuple:", quad_tuple
         #self.log("select_stream_by_quad_tuple: quad_tuple: " % str(quad_tuple))
         row = self._select_stream_row_by_quad_tuple(quad_tuple)
@@ -94,11 +99,13 @@ class Stream_DB:
         if row:
             id, cli_ip, cli_pt, svr_ip, svr_pt, bytes_to_svr, bytes_to_cli, \
                 ts_first_pkt, ts_last_pkt = row
-            stream = Stream(id=id, cli_ip=cli_ip, cli_pt=cli_pt, svr_ip=svr_ip,
+            tcp_status = TCP_Status(cli_ip=cli_ip, cli_pt=cli_pt, svr_ip=svr_ip,
                 svr_pt=svr_pt, bytes_to_svr=bytes_to_svr, bytes_to_cli=bytes_to_cli,
                 ts_first_pkt=ts_first_pkt, ts_last_pkt=ts_last_pkt)
+            ssl_status = SSL_Status()
+            stream_status = Stream(id=id, tcp_status=tcp_status, ssl_status=ssl_status)
 
-        return stream
+        return stream_status
         
     def _select_stream_row_by_quad_tuple(self, quad_tuple):
         conn = self._get_conn_to_ptp_db()
@@ -129,16 +136,21 @@ class Stream_DB:
             cursor.close()
             conn.close()
 
-    def update_stream(self, stream):
+    def update_stream(self, stream_status):
         conn = self._get_conn_to_ptp_db()
 	cursor = conn.cursor()
+        ts = stream_status.tcp_status
+        ss = stream_status.ssl_status
+        stream_tuple = (ts.cli_ip, ts.cli_pt, ts.svr_ip, ts.svr_pt, \
+            ts.bytes_to_svr, ts.bytes_to_cli, ts.ts_first_pkt, ts.ts_last_pkt)
+
         try:
             sql =  """update streams 
                     set cli_ip = inet6_aton(\'%s\'), cli_pt = %d, 
                         svr_ip = inet6_aton(\'%s\'), svr_pt = %d,
                         bytes_to_svr = %d, bytes_to_cli = %d,
                         ts_first_pkt = %d, ts_last_pkt = %d
-                    where id = %d""" % stream.get_stream_tuple()
+                    where id = %d""" % stream_tuple
             cursor.execute(sql)
             conn.commit()
         except MySQLdb.OperationalError as e:

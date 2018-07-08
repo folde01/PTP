@@ -1,9 +1,10 @@
 import unittest
 from scapy.all import TCP, Raw 
 from ptp_session_reassembler import Session_Reassembler
+from ptp_packet_dissection import Packet_Dissection 
 import re
 
-class TCP_Payload:
+class TCP_Payload(object):
      
     # SSL protocol constants 
     RECORDTYPE_HANDSHAKE =      '16'
@@ -24,8 +25,11 @@ class TCP_Payload:
     def get_load(self):
         return self._load
 
-    def is_ssl_client_hello(self):
+    def dissect_ssl_client_hello(self):
         '''
+        Returns:
+            Packet_Dissection object 
+
         First bytes of an example payload which results in True: 
         16030100df010000db0303ad188de0518a4a1df27f3bf0af67...
 
@@ -46,6 +50,9 @@ class TCP_Payload:
         Credit for SSL record and handshake protocol analysis to Ristic, 2015 and
         http://blog.fourthbit.com/2014/12/23/traffic-analysis-of-an-ssl-slash-tls-session
         '''
+
+        dissection = Packet_Dissection()
+
         try:
             re_client_hello = re.compile(  
                     r'''
@@ -68,9 +75,8 @@ class TCP_Payload:
                     re.VERBOSE | re.IGNORECASE)
             match = re_client_hello.match(self.get_load())
             print "match:", match, "groups:", match.groups()
-            return bool(match)
-        except TypeError:
-            return False
+            dissection.is_ssl_client_hello = bool(match)
+            return dissection
 
     def is_ssl_server_hello(self):
         '''

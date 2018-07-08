@@ -2,7 +2,9 @@ from scapy.all import rdpcap, PacketList, Ether, IP, TCP, Raw
 import hashlib
 from ptp_network import Network
 from ptp_constants import Constants
+from ptp_session_pair import Session_Pair
 import unittest
+
 
 class Session_Reassembler:
 
@@ -13,8 +15,8 @@ class Session_Reassembler:
 
     def get_session_pairs(self):
         """returns a dict where the key is the 'quad' tuple (cli_ip, cli_pt,
-        svr_ip, svr_pt) and the value is a two-tuple of opposing sessions for
-        that quad.""" 
+        svr_ip, svr_pt) and the value is a Session_Pair object
+        """ 
 
         session_pairs = {}
         sessions = self._get_sessions_dict()
@@ -47,7 +49,8 @@ class Session_Reassembler:
                 else:
                     #print "%s is client-to-server only" % str(quad)
                     opp_session = None
-                session_pairs[quad] = (session, opp_session)
+                session_pair = Session_Pair(session, opp_session)
+                session_pairs[quad] = session_pair 
             else:
                 quad = (dst_ip, dst_pt, src_ip, src_pt)
                 if quad in session_pairs.keys(): 
@@ -59,7 +62,8 @@ class Session_Reassembler:
                 else:
                     #print "%s is server-to-client only" % str(quad)
                     opp_session = None
-                session_pairs[quad] = (opp_session, session)
+                session_pair = Session_Pair(opp_session, session)
+                session_pairs[quad] = session_pair 
 
         self._session_pairs = session_pairs
         return self._session_pairs
