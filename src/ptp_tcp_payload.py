@@ -21,15 +21,16 @@ class TCP_Payload(object):
             self._load = load.encode('HEX')
         else:
             self._load = None
+        self._dissection = Packet_Dissection()
 	
     def get_load(self):
         return self._load
 
+    def get_dissection(self):
+        return self._dissection
+
     def dissect_ssl_client_hello(self):
         '''
-        Returns:
-            Packet_Dissection object 
-
         First bytes of an example payload which results in True: 
         16030100df010000db0303ad188de0518a4a1df27f3bf0af67...
 
@@ -51,32 +52,32 @@ class TCP_Payload(object):
         http://blog.fourthbit.com/2014/12/23/traffic-analysis-of-an-ssl-slash-tls-session
         '''
 
-        dissection = Packet_Dissection()
 
-        try:
-            re_client_hello = re.compile(  
-                    r'''
-                    ^(
-                    # SSL record protocol:
-                    %s              # handshake record type 
-                    (%s|%s|%s|%s)  # SSL version: any of four currently use
-                    [0-9a-f]{4}     # message length 
+        re_client_hello = re.compile(  
+                r'''
+                ^(
+                # SSL record protocol:
+                %s              # handshake record type 
+                (%s|%s|%s|%s)  # SSL version: any of four currently use
+                [0-9a-f]{4}     # message length 
 
-                    # SSL handshake protocol:
-                    %s              # ClientHello message type
-                    )
-                    ''' % (re.escape(self.RECORDTYPE_HANDSHAKE),
-                           re.escape(self.VERSION_SSLV3_0),
-                           re.escape(self.VERSION_TLSV1_0),
-                           re.escape(self.VERSION_TLSV1_1),
-                           re.escape(self.VERSION_TLSV1_2),
-                           re.escape(self.MESSAGETYPE_CLIENTHELLO),
-                           ), 
-                    re.VERBOSE | re.IGNORECASE)
-            match = re_client_hello.match(self.get_load())
-            print "match:", match, "groups:", match.groups()
-            dissection.is_ssl_client_hello = bool(match)
-            return dissection
+                # SSL handshake protocol:
+                %s              # ClientHello message type
+                )
+                ''' % (re.escape(self.RECORDTYPE_HANDSHAKE),
+                       re.escape(self.VERSION_SSLV3_0),
+                       re.escape(self.VERSION_TLSV1_0),
+                       re.escape(self.VERSION_TLSV1_1),
+                       re.escape(self.VERSION_TLSV1_2),
+                       re.escape(self.MESSAGETYPE_CLIENTHELLO),
+                       ), 
+                re.VERBOSE | re.IGNORECASE)
+
+        match = re_client_hello.match(self.get_load())
+        print "match:", match, "groups:", match.groups()
+
+        dissection = self.get_dissection()
+        dissection.is_ssl_client_hello = bool(match)
 
     def is_ssl_server_hello(self):
         '''
@@ -102,36 +103,37 @@ class TCP_Payload(object):
         Credit for SSL record and handshake protocol analysis to Ristic, 2015 and
         http://blog.fourthbit.com/2014/12/23/traffic-analysis-of-an-ssl-slash-tls-session
         '''
-        try:
-            re_server_hello = re.compile(  
-                    r'''
-                    ^(
-                    # SSL record protocol:
-                    %s              # handshake record type 
-                    (%s|%s|%s|%s)   # SSL version: any of four currently use
-                    [0-9a-f]{4}     # message length 
+        
+        re_server_hello = re.compile(  
+                r'''
+                ^(
+                # SSL record protocol:
+                %s              # handshake record type 
+                (%s|%s|%s|%s)   # SSL version: any of four currently use
+                [0-9a-f]{4}     # message length 
 
-                    # SSL handshake protocol:
-                    %s              # ServerHello message type
-                    [0-9a-f]{6}     # message length 
-                    (%s|%s|%s|%s)   # SSL version: any of four currently use
-                    [0-9a-f]{64}    # random 
-                    00              # Session ID length - assume 0 for now 
-                    ([0-9a-f]{4})   # cipher 
-                    )
-                    ''' % (re.escape(self.RECORDTYPE_HANDSHAKE),
-                           re.escape(self.VERSION_SSLV3_0),
-                           re.escape(self.VERSION_TLSV1_0),
-                           re.escape(self.VERSION_TLSV1_1),
-                           re.escape(self.VERSION_TLSV1_2),
-                           re.escape(self.MESSAGETYPE_SERVERHELLO),
-                           ), 
-                    re.VERBOSE | re.IGNORECASE)
-            match = re_server_hello.match(self.get_load())
-            print "match:", match, "groups:", match.groups()
-            return bool(match)
-        except TypeError:
-            return False
+                # SSL handshake protocol:
+                %s              # ServerHello message type
+                [0-9a-f]{6}     # message length 
+                (%s|%s|%s|%s)   # SSL version: any of four currently use
+                [0-9a-f]{64}    # random 
+                00              # Session ID length - assume 0 for now 
+                ([0-9a-f]{4})   # cipher 
+                )
+                ''' % (re.escape(self.RECORDTYPE_HANDSHAKE),
+                       re.escape(self.VERSION_SSLV3_0),
+                       re.escape(self.VERSION_TLSV1_0),
+                       re.escape(self.VERSION_TLSV1_1),
+                       re.escape(self.VERSION_TLSV1_2),
+                       re.escape(self.MESSAGETYPE_SERVERHELLO),
+                       ), 
+                re.VERBOSE | re.IGNORECASE)
+
+        match = re_server_hello.match(self.get_load())
+        print "match:", match, "groups:", match.groups()
+
+        dissection = self.get_dissection()
+        dissection.is_ssl_server_hello = bool(match)
 
     def is_ssl_client_change_cipher_spec(self):
         return False

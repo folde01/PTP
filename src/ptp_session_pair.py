@@ -53,6 +53,12 @@ class Session_Pair(object):
         bytes_to_svr = self._get_session_payload_size(cli_to_svr_session)
         bytes_to_cli = self._get_session_payload_size(svr_to_cli_session)
         ts_first_pkt, ts_last_pkt = self._get_start_and_end_ts()
+        # Assumes for now that TCP Fast Open is not used, so Client Hello is sent in
+        # client's third packet.
+        first_flight = TCP_Payload(sp[0][2]).dissect_first_flight()
+        second_flight = TCP_Payload(sp[1][2]).dissect_second_flight()
+        third_flight = TCP_Payload(sp[0][3]).dissect_third_flight()
+        fourth_flight = TCP_Payload(sp[1][3]).dissect_fourth_flight()
 
 	tcp_status = TCP_Status(cli_ip=cli_ip, cli_pt=int(cli_pt), svr_ip=svr_ip,
                 svr_pt=int(svr_pt), bytes_to_cli=bytes_to_cli,
