@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# needs python 2.7.12 for jupyter to install properly so using anaconda on Ubuntu 14.04, which doesn't go that high (2.7.6)
+
+PROJ_HOME=$HOME/0proj/repo
+
 
 # host prereqs:
 
@@ -24,7 +28,7 @@ fi
 # OS updates: 
 sudo apt-get update
 sudo apt-get -y dist-upgrade
-sudo apt-get -y install virtualbox-guest-dkms 
+sudo apt-get -y install virtualbox-guest-dkms
 
 # Dependencies: VPN (pptpd to start with), ntp, virtualenv, python 2, pip, scapy, libnids, pynids, flask, mock ...
 
@@ -42,31 +46,24 @@ if [ -f /var/run/reboot-required ]; then
       reboot
 fi
 
-PTP_HOME=$HOME/ptp
-PTP_PREREQS=$PTP_HOME/prereqs
-mkdir $PTP_PREREQS
-
-# rm -rf $PTP_HOME
-# mkdir -p $PTP_HOME
-# mkdir -p $PTP_PREREQS
-sudo apt-get update
-sudo apt-get install -y python-pip
-# pip install --upgrade pip .... DON'T RUN... THIS BREAKS PIP!
-pip install virtualenv
+#PTP_HOME=$HOME/ptp
 
 
-virtualenv --no-site-packages venv
-source venv/bin/activate
-pip install flask
-pip install flask_table
-pip install scapy
-pip install psutil
+PTP_HOME=$PROJ_HOME
+PTP_PREREQS=$PTP_HOME/bbk-project/prereqs
+mkdir -p $PTP_PREREQS
+
+# make sure we're in virtualenv!
+
+python -m pip install flask flask_table scapy psutil
 
 sudo apt-get install -y libmysqlclient-dev python-dev
-pip install mysqlclient
+python -m pip install mysqlclient
 
 # For development only (in place of python repl):
-python -m pip install jupyter
+# needs python 2.7.11 (which is why we use anaconda on 14.04, which has only 2.7.6)
+python -m pip install jupyter 
+
 # then follow this to run the jupyter notebook as a server on VM and make accessible remotely from host browser: http://jupyter-notebook.readthedocs.io/en/stable/public_server.html
 #(venv) jo@ubuntu:~/ptp/PTP/src$ jupyter notebook --generate-config
 #(venv) jo@ubuntu:~/ptp/PTP/src$ vim ~/.jupyter/jupyter_notebook_config.py
@@ -82,10 +79,11 @@ mkdir -p $PTP_PREREQS
 sudo apt-get -y install libpcap-dev pkg-config libglib2.0-dev
 
 cd $PTP_PREREQS
-git clone https://github.com/MITRECND/pynids.git
-cd pynids
-python setup.py build
-python setup.py install
+
+#git clone https://github.com/MITRECND/pynids.git
+#cd pynids
+#python setup.py build
+#python setup.py install
 
 cd $PTP_PREREQS
 git clone https://github.com/CoreSecurity/pcapy.git
@@ -96,7 +94,4 @@ python setup.py install
 cd $PTP_HOME/PTP/src
 python ptp_init.py
 
-# running ptp
-cd $PTP_HOME/PTP/src
-. venv/bin/activate
 ./ptp_start.sh

@@ -15,8 +15,8 @@ class Stream_DB:
 	cursor = conn.cursor()
         try:
             for stream_status in stream_status_collection: 
-               tcp_status = stream_status.tcp_status
-               ssl_status = stream_status.ssl_status
+                tcp_status = stream_status.tcp_status
+                ssl_status = stream_status.ssl_status
                 #print tcp_status.cli_ip, tcp_status.cli_pt, tcp_status.svr_ip, tcp_status.svr_pt, tcp_status.bytes_to_svr, tcp_status.bytes_to_cli, tcp_status.ts_first_pkt, tcp_status.ts_last_pkt
                 sql = """insert into 
                     streams (cli_ip, cli_pt, svr_ip, svr_pt, bytes_to_svr, bytes_to_cli, ts_first_pkt, ts_last_pkt) 
