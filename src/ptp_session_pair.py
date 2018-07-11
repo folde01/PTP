@@ -3,7 +3,6 @@ from ptp_network import Network
 from ptp_constants import Constants
 from ptp_connection_status import Stream_Status, TCP_Status, SSL_Status
 import unittest
-from ptp_session_reassembler import Session_Reassembler
 from ptp_tcp_payload import TCP_Payload
 
 class Session_Pair(object):
@@ -63,7 +62,7 @@ class Session_Pair(object):
 	tcp_status = TCP_Status(cli_ip=cli_ip, cli_pt=int(cli_pt), svr_ip=svr_ip,
                 svr_pt=int(svr_pt), bytes_to_cli=bytes_to_cli,
                 bytes_to_svr=bytes_to_svr, ts_first_pkt=float(ts_first_pkt),
-                ts_last_pkt=float(ts_last_pkt), ssl_status)
+                ts_last_pkt=float(ts_last_pkt))
 
         self._tcp_status = tcp_status
         return tcp_status
@@ -165,7 +164,7 @@ class Session_Pair(object):
 class Test_Session_Pair(unittest.TestCase):
         
     def setUp(self):
-        pass
+        from ptp_session_reassembler import Session_Reassembler
 
     def tearDown(self):
         pass

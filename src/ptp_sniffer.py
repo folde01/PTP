@@ -1,5 +1,4 @@
 from ptp_logger import Logger
-import psutil
 import logging
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 from scapy.all import Ether, IP, TCP, sendp
@@ -10,7 +9,8 @@ import time
 import pcapy
 from socket import ntohs
 from struct import unpack
-from  ptp_tcp_client import PacketSender 
+from ptp_tcp_client import Packet_Sender 
+from ptp_network import Network 
 
 class Sniffer:
 
@@ -20,6 +20,11 @@ class Sniffer:
 
     def __init__(self, pcap_filename='sniffed.pcap'):
         self._pcap_filename = pcap_filename 
+        self._net = Network()
+        self._host_ip = self._net.get_host_ip()
+        self._stop_eth_addr = self._net.get_stop_eth() 
+        self._nic_name = self._net.get_nic_name()
+        self._cli_ip = self._net.get_cli_ip()
 
     def get_pcap_filename(self):
         return self._pcap_filename
@@ -32,25 +37,9 @@ class Sniffer:
         Sniffer._sniffer_thread.start()
         #return self.is_running()
 
-    def _get_nic_name(self):
-        interfaces = psutil.net_if_addrs()
-        interface_names = interfaces.keys()
-        for name in interface_names:
-            if name.startswith("en"):
-                return name
-        return None 
-
-    def _get_nic_IPv4_addr(self, nic_name):
-        interfaces = psutil.net_if_addrs()
-        nic = interfaces[nic_name]
-        for snic in nic:
-            if snic.family == 2:
-                return snic.address
-        return None
-
     def _run_sniffer_thread(self):
-        nic_name = self._get_nic_name() 
-        local_ip = self._get_nic_IPv4_addr(self._get_nic_name())
+        nic_name = self._nic_name
+        local_ip = self._cli_ip
         self.log("nic_name=%s; local_ip=%s" % (nic_name, local_ip))
         #nic_name = "ppp0"
         max_packet_size = 65536
@@ -60,11 +49,8 @@ class Sniffer:
         # can't complete until packets are actually captured
         timeout_ms = 0 
         cap = pcapy.open_live(nic_name, max_packet_size, promiscuous_mode, timeout_ms)
-	stop_eth_addr = '00:00:00:03:02:01'
-	#bpf_filter = "tcp or ether dst " + stop_eth_addr
-        host_ip = '192.168.1.3'
-	#bpf_filter = "( host %s and tcp ) or ether dst %s" % (local_ip, stop_eth_addr)
-	bpf_filter = "( host %s and tcp and ( not host %s ) ) or ether dst %s" % (local_ip, host_ip, stop_eth_addr)
+        host_ip = self._host_ip
+	bpf_filter = "( host %s and tcp and ( not host %s ) ) or ether dst %s" % (local_ip, host_ip, self._stop_eth_addr)
         self.log("bpf_filter=%s" % bpf_filter)
 	cap.setfilter(bpf_filter)
 	dumper = cap.dump_open(self._pcap_filename)
@@ -72,7 +58,7 @@ class Sniffer:
 	while(True):
 	    packet_hdr, packet_body = cap.next()
 	    dumper.dump(packet_hdr,packet_body)
-	    if self._is_stop_packet(packet_body, stop_eth_addr):
+	    if self._is_stop_packet(packet_body, self._stop_eth_addr):
 		break
 
 	del dumper
@@ -107,10 +93,12 @@ class Sniffer:
         return self._pcap_filename 
 
     def _send_kill_packet(self):
-        PacketSender().send_kill_packet()
+        Packet_Sender().send_kill_packet()
 
     def _send_kill_packet_old(self):
-	kill_packet = Ether(dst='00:00:00:03:02:01')/IP(dst='10.11.12.13')/TCP()
+        host_ip = self._host_ip
+	#kill_packet = Ether(dst='00:00:00:03:02:01')/IP(dst='10.11.12.13')/TCP()
+	kill_packet = Ether(dst=self._stop_eth_addr)/IP(dst=host_ip)/TCP()
 	sendp(kill_packet)
 
     def is_running(self):
@@ -161,7 +149,7 @@ class TestSniffer(unittest.TestCase):
 '''
     def test_test_packet_sent_and_received(self):
         self.sniffer.start()
-        PacketSender().send_test_packet()
+        Packet_Sender().send_test_packet()
         self.sniffer.stop()
 '''
 

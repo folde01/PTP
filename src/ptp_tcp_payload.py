@@ -1,6 +1,5 @@
 import unittest
 from scapy.all import TCP, Raw 
-from ptp_session_reassembler import Session_Reassembler
 from ptp_packet_dissection import Packet_Dissection 
 import re
 
@@ -151,7 +150,7 @@ class TCP_Payload(object):
 class Test_TCP_Payload(unittest.TestCase):
 
     def setUp(self):
-        pass
+        from ptp_session_reassembler import Session_Reassembler
 
     def tearDown(self):
         pass
