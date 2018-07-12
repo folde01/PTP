@@ -6,6 +6,8 @@ class Network:
     def __init__(self, nic_name='tap0', cli_ip='10.0.2.15'):
         self._nic_name = nic_name
         self._cli_ip = cli_ip
+        self._sniffer_stop_eth = '00:00:00:03:02:01'
+        self._sniffer_stop_ip = '10.11.12.13' 
 
     def get_nic_name(self):
         return self._nic_name
@@ -23,7 +25,7 @@ class Network:
         return None
 
     def get_stop_eth(self):
-        return '00:00:00:03:02:01'
+        return self._sniffer_stop_eth 
 
     def get_stop_ip(self):
-        return '10.11.12.13'
+        return self._sniffer_stop_ip 

@@ -16,10 +16,11 @@ class Analyser:
 
     def results(self):
         session_pairs = self._get_session_pairs()
-        streams = [ pair.get_stream() for pair in session_pairs ]
+        streams = [ pair.get_stream_status() for pair in session_pairs ]
 	db = self._stream_db
         db.clear_streams()
         db.persist_streams(streams)
+        #print "yoda"
         return Stream_Table(db.select_all_streams()) 
 
     def get_sniffer(self):

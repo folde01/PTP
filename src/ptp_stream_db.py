@@ -72,7 +72,8 @@ class Stream_DB:
                 svr_pt=svr_pt, bytes_to_svr=bytes_to_svr, bytes_to_cli=bytes_to_cli,
                 ts_first_pkt=ts_first_pkt, ts_last_pkt=ts_last_pkt)
             ssl_status = SSL_Status()
-            stream_status = Stream_Status(id=id, tcp_status=tcp_status, ssl_status=ssl_status)
+            stream_status = Stream_Status(id=id, tcp_status=tcp_status, \
+                    ssl_status=ssl_status).get_flattened()
             streams.append(stream_status)
         return streams
 

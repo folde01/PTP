@@ -54,10 +54,20 @@ class Session_Pair(object):
         ts_first_pkt, ts_last_pkt = self._get_start_and_end_ts()
         # Assumes for now that TCP Fast Open is not used, so Client Hello is sent in
         # client's third packet.
-        first_flight = TCP_Payload(sp[0][2]).dissect_first_flight()
-        second_flight = TCP_Payload(sp[1][2]).dissect_second_flight()
-        third_flight = TCP_Payload(sp[0][3]).dissect_third_flight()
-        fourth_flight = TCP_Payload(sp[1][3]).dissect_fourth_flight()
+
+        try:
+            first_flight = cli_to_svr_session[2]
+            second_flight = svr_to_cli_session[2]
+            third_flight = cli_to_svr_session[3]
+            fourth_flight = svr_to_cli_session[3]
+            first_flight_dissection = TCP_Payload(first_flight).dissect_first_flight()
+            second_flight_dissection = TCP_Payload(second_flight).dissect_second_flight()
+            third_flight_dissection = TCP_Payload(third_flight).dissect_third_flight()
+            fourth_flight_dissection = TCP_Payload(fourth_flight).dissect_fourth_flight()
+        except (IndexError, TypeError) as e:
+            pass
+            #print "Not enough packets for SSL handshake:", e
+
 
 	tcp_status = TCP_Status(cli_ip=cli_ip, cli_pt=int(cli_pt), svr_ip=svr_ip,
                 svr_pt=int(svr_pt), bytes_to_cli=bytes_to_cli,
@@ -103,7 +113,7 @@ class Session_Pair(object):
     def _get_pkt_payload_length(self, pkt):
         return len(pkt[TCP].payload)
 
-    def _get_SSL_status(self):
+    def _get_ssl_status(self):
         """Examine use (or otherwise) of SSL protocol.
 
         Args:
@@ -115,10 +125,11 @@ class Session_Pair(object):
             return self._ssl_status
 
         ssl_handshake_observed = self._ssl_handshake_is_observed()
-        ssl_version = self._ssl_()
+        #ssl_version = self._ssl_()
 
-        self._ssl_status = ssl_status
-        return ssl_status
+        #self._ssl_status = ssl_status
+        #return ssl_status
+        return {}
 
     def _ssl_handshake_is_observed(self):
         """returns whether we saw the TCP handshake followed by the exchange of messages
@@ -132,15 +143,25 @@ class Session_Pair(object):
 
         # Assumes for now that TCP Fast Open is not used, so Client Hello is sent in
         # client's third packet.
-        first_flight = TCP_Payload(sp[0][2]).dissect_first_flight()
-        second_flight = TCP_Payload(sp[1][2]).dissect_second_flight()
-        third_flight = TCP_Payload(sp[0][3]).dissect_third_flight()
-        fourth_flight = TCP_Payload(sp[1][3]).dissect_fourth_flight()
 
-        if first_flight.is_ssl_client_hello and \
-                second_flight.is_ssl_server_hello and \
-                third_flight.is_ssl_client_change_cipher_spec and \
-                fourth_flight.is_ssl_server_change_cipher_spec:
+        try:
+            first_flight = self._cli_to_svr[2]
+            second_flight = self._svr_to_cli[2]
+            third_flight = self._cli_to_svr[3]
+            fourth_flight = self._svr_to_cli[3]
+        except IndexError:
+            print "Not enough packets for SSL handshake"
+            return False
+
+        first_flight_dissection = TCP_Payload(first_flight).dissect_first_flight()
+        second_flight_dissection = TCP_Payload(second_flight).dissect_second_flight()
+        third_flight_dissection = TCP_Payload(third_flight).dissect_third_flight()
+        fourth_flight_dissection = TCP_Payload(fourth_flight).dissect_fourth_flight()
+
+        if first_flight_dissection.is_ssl_client_hello and \
+                second_flight_dissection.is_ssl_server_hello and \
+                third_flight_dissection.is_ssl_client_change_cipher_spec and \
+                fourth_flight_dissection.is_ssl_server_change_cipher_spec:
             return True
         return False
 
@@ -152,8 +173,8 @@ class Session_Pair(object):
         returns two of first packet in cli_to_svr with a TCP payload. 
         """
         session_pair = self
-        cli_to_svr = session_pair[0]
-        svr_to_cli = session_pair[1]
+        cli_to_svr = self._cli_to_svr
+        svr_to_cli = self._svr_to_cli 
 
         if cli_to_svr[0][TCP].flags == 'S' \
                 and svr_to_cli[0][TCP].flags == 'SA' \

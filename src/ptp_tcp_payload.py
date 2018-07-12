@@ -28,6 +28,18 @@ class TCP_Payload(object):
     def get_dissection(self):
         return self._dissection
 
+    def dissect_first_flight(self):
+        return self._dissection
+
+    def dissect_second_flight(self):
+        return self._dissection
+
+    def dissect_third_flight(self):
+        return self._dissection
+
+    def dissect_fourth_flight(self):
+        return self._dissection
+
     def dissect_ssl_client_hello(self):
         '''
         First bytes of an example payload which results in True: 

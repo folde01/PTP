@@ -25,9 +25,11 @@ def results():
     global sniffer
     sniffer.stop()
     log("stop_capture(): traffic capture stopped")
-    results = analyser.results()
+    results_table = analyser.results()
+    results_table.border = True
+    print "UI results:", repr(results)
     log("generate_analysis(): analysed")
-    return render_template('results.html', results=results)
+    return render_template('results.html', results=results_table)
 
 def log(msg): 
     '''Writes to a log file, for debugging purposes'''

@@ -10,11 +10,35 @@ class Stream_Status(object):
         pass
 
     def __repr__(self):
-        return "<%s:%d %s:%d, bytes_to_svr: %d, bytes_to_cli: %d, ts_first_pkt: %.3f, ts_last_pkt: %.3f>" % \
-        (self.tcp_status.cli_ip, self.tcp_status.cli_pt, self.tcp_status.svr_ip, \
+        return "<id: %d, %s:%d, %s:%d, bytes_to_svr: %d, bytes_to_cli: %d, ts_first_pkt: %s, ts_last_pkt: %s>" % \
+        (self.id, self.tcp_status.cli_ip, self.tcp_status.cli_pt, self.tcp_status.svr_ip, \
             self.tcp_status.svr_pt, self.tcp_status.bytes_to_svr, \
             self.tcp_status.bytes_to_cli, self.tcp_status.ts_first_pkt, \
             self.tcp_status.ts_last_pkt)
+
+    def get_flattened(self):
+        """Returns an object with attribute/value pairs needed to create a row in an 
+        HTML table of streams."""
+        ts=self.tcp_status
+        flattened = Stream_Flattened(
+                cli_ip = ts.cli_ip,
+                cli_pt = ts.cli_pt,
+                svr_ip = ts.svr_ip,
+                svr_pt = ts.svr_pt,
+                bytes_to_svr = ts.bytes_to_svr,
+                bytes_to_cli = ts.bytes_to_cli,
+                ts_first_pkt = ts.ts_first_pkt,
+                ts_last_pkt = ts.ts_last_pkt)
+        return flattened
+
+class Stream_Flattened(object):
+    """An object made of arbitrary attribute/value pairs.
+    Credit to Alex Martelli: 
+    http://code.activestate.com/recipes/52308-the-simple-but-handy-collector-of-a-bunch-of-named/
+    """
+    def __init__(self, **kwds):
+        self.__dict__.update(kwds)
+
 
 class TCP_Status(object):
     def __init__(self, **kwargs):
