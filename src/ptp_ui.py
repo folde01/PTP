@@ -27,7 +27,7 @@ def results():
     log("stop_capture(): traffic capture stopped")
     results_table = analyser.results()
     results_table.border = True
-    print "UI results:", repr(results)
+    #print "UI results:", repr(results)
     log("generate_analysis(): analysed")
     return render_template('results.html', results=results_table)
 

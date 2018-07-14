@@ -15,3 +15,9 @@ class Stream_Table(Table):
     bytes_to_cli = Col('Bytes sent to client')
     ts_first_pkt = Col('Timestamp of first packet')
     ts_last_pkt = Col('Timestamp of last packet')
+    # TODO Phase 3:
+    # encrypted = Col('Encrypted') 
+    # ssl_version = Col('SSL version')
+    # ssl_cipher = Col('SSL cipher used') 
+    # TODO Phase 4:
+    # app_name = Col('App name')

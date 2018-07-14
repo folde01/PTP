@@ -36,8 +36,8 @@ class Stream_Flattened(object):
     Credit to Alex Martelli: 
     http://code.activestate.com/recipes/52308-the-simple-but-handy-collector-of-a-bunch-of-named/
     """
-    def __init__(self, **kwds):
-        self.__dict__.update(kwds)
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
 
 
 class TCP_Status(object):

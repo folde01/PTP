@@ -14,14 +14,18 @@ class Session_Pair(object):
         self._tcp_status = None
         self._ssl_status = None
 
+
     def get_stream_status(self):
         """
         Returns: 
-            A Stream object containing the full analysis of the session pair. This has all the info we need for
-        the stream database.
+            A Stream object containing the full analysis of the session pair.
+            This has all the info we need for the stream database.
         """
-        stream_status = Stream_Status(tcp_status=self._get_tcp_status(), ssl_status=self._get_ssl_status())
+
+        stream_status = Stream_Status(tcp_status=self._get_tcp_status(), \
+                ssl_status=self._get_ssl_status())
         return stream_status
+
 
     def _get_tcp_status(self):
         """
@@ -52,22 +56,9 @@ class Session_Pair(object):
         bytes_to_svr = self._get_session_payload_size(cli_to_svr_session)
         bytes_to_cli = self._get_session_payload_size(svr_to_cli_session)
         ts_first_pkt, ts_last_pkt = self._get_start_and_end_ts()
+
         # Assumes for now that TCP Fast Open is not used, so Client Hello is sent in
         # client's third packet.
-
-        try:
-            first_flight = cli_to_svr_session[2]
-            second_flight = svr_to_cli_session[2]
-            third_flight = cli_to_svr_session[3]
-            fourth_flight = svr_to_cli_session[3]
-            first_flight_dissection = TCP_Payload(first_flight).dissect_first_flight()
-            second_flight_dissection = TCP_Payload(second_flight).dissect_second_flight()
-            third_flight_dissection = TCP_Payload(third_flight).dissect_third_flight()
-            fourth_flight_dissection = TCP_Payload(fourth_flight).dissect_fourth_flight()
-        except (IndexError, TypeError) as e:
-            pass
-            #print "Not enough packets for SSL handshake:", e
-
 
 	tcp_status = TCP_Status(cli_ip=cli_ip, cli_pt=int(cli_pt), svr_ip=svr_ip,
                 svr_pt=int(svr_pt), bytes_to_cli=bytes_to_cli,
@@ -79,7 +70,13 @@ class Session_Pair(object):
  
 
     def _get_session_payload_size(self, session):
-        """returns size of total TCP payload for all packets in bytes"""
+        """
+        Args:
+            session (PacketList): Scapy packet list representing one direction of
+            TCP connection.
+        Returns:
+            int: size of total TCP payload for all packets in bytes
+        """
         if session is None:
             return 0
         size = 0
@@ -116,33 +113,34 @@ class Session_Pair(object):
     def _get_ssl_status(self):
         """Examine use (or otherwise) of SSL protocol.
 
-        Args:
-            session_pair: the two TCP sessions representing a bidirectional TCP connection. 
         Returns:
             SSL_Status object containing details of SSL use.
         """
         if self._ssl_status is not None:
             return self._ssl_status
 
-        ssl_handshake_observed = self._ssl_handshake_is_observed()
-        #ssl_version = self._ssl_()
+        self._ssl_handshake_analysis()
+        self._ssl_tunnel_analysis()
+        self._tcp_close_analysis()
+        return self._ssl_status 
 
-        #self._ssl_status = ssl_status
-        #return ssl_status
-        return {}
+    def _ssl_handshake_analysis(self):
+        """ Updates SSL status object for this packet.
+        Looks for TCP handshake followed by the exchange of messages (sometimes called
+        the 'four flights') required to establish the encrypted tunnel, 
+        namely Client Hello, Server Hello and Change Cipher Suite. 
+        Updates SSL status object with SSL version and cipher
+        used. Assumes TCP Fast Open is not used, so Client Hello must be sent 
+        in client's third packet.
 
-    def _ssl_handshake_is_observed(self):
-        """returns whether we saw the TCP handshake followed by the exchange of messages
-        required to establish the encrypted tunnel, namely Client hello, Server Hello
-        and Change Cipher Suite.
+        Returns:
+            bool: True if valid SSL handshake observed, otherwise False.
         """
+
         sp = self 
 
         if not self._tcp_handshake_is_observed():
             return False
-
-        # Assumes for now that TCP Fast Open is not used, so Client Hello is sent in
-        # client's third packet.
 
         try:
             first_flight = self._cli_to_svr[2]
@@ -163,7 +161,17 @@ class Session_Pair(object):
                 third_flight_dissection.is_ssl_client_change_cipher_spec and \
                 fourth_flight_dissection.is_ssl_server_change_cipher_spec:
             return True
+
         return False
+
+
+    def _ssl_tunnel_analysis(self):
+        pass
+
+
+    def _tcp_close_analysis(self):
+        pass
+
 
     def _packet_has_payload(self, pkt):
         return len(pkt[TCP].payload) > 0
