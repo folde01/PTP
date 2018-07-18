@@ -6,16 +6,8 @@ import re
 
 class TCP_Payload(object):
      
-    # SSL protocol constants 
-    RECORDTYPE_HANDSHAKE =      '16'
-    VERSION_SSLV3_0 =           '0300'
-    VERSION_TLSV1_0 =           '0301'
-    VERSION_TLSV1_1 =           '0302'
-    VERSION_TLSV1_2 =           '0303'
-    MESSAGETYPE_CLIENTHELLO =   '01'
-    MESSAGETYPE_SERVERHELLO =   '02'
-
     def __init__(self, pkt):
+        self._constants = Constants()
         if pkt.haslayer(Raw):
             load = pkt[TCP][Raw].load
             self._load = load.encode('HEX')
@@ -48,10 +40,10 @@ class TCP_Payload(object):
         '''
 
         start_index = 2 * start_byte
-        end_index = start_index + 2 * num_bytes 
+        end_index = start_index + (2 * num_bytes)
         hex_str = str(hex_str)
 
-        if len(hex_str) != 2 * num_bytes or len(hex_str) % 2 != 0:
+        if (len(hex_str) != 2 * num_bytes) or (len(hex_str) % 2 != 0):
             s = """The hex string (%s) must represent bytes, so it must be an
             even number of hex digits. It must also be of the provided byte
             length (%d)."""  % (hex_str, num_bytes)
@@ -79,11 +71,11 @@ class TCP_Payload(object):
             str: The match, if there was one, otherwise None.  
         '''
         start_index = 2 * start_byte
-        end_index = start_index + 2 * num_bytes 
+        end_index = start_index + (2 * num_bytes)
         hex_strs = [str(hex_str) for hex_str in hex_strs] 
 
         for hex_str in hex_strs:
-            if len(hex_str) != 2 * num_bytes or len(hex_str) % 2 != 0:
+            if (len(hex_str) != 2 * num_bytes) or (len(hex_str) % 2 != 0):
                 s = """
                 The hex string (%s) must represent bytes, so it must be an
                 even number of hex digits. It must also be of the provided byte
@@ -95,32 +87,62 @@ class TCP_Payload(object):
                 s = "Non-hex string given: %s" % hex_str
                 raise ValueError(s) 
 
+            print start_index, end_index
             if self.get_load()[start_index:end_index] == hex_str:
                 return hex_str
 
         return None
 
 
-    def is_ssl_handshake(self):
+    def is_protocol_handshake(self):
         '''
         Returns:
-            bool: True if payload contains SSL record type flag, False otherwise. 
+            bool: True if SSL handshake record type, False otherwise. 
         '''
-        return self.range_matches(start_byte=0, num_bytes=1, hex_str='16')
+        const = self._constants.ssl
+        start_byte = const['start_bytes']['RECORD_PROTOCOL']
+        num_bytes = const['lengths']['RECORD_PROTOCOL']
+        hex_str = const['protocols']['HANDSHAKE']
+        return self.range_matches(start_byte, num_bytes, hex_str)
 
-    def is_ssl_record_valid_version(self):
-        SSL_3_0 = '0300'
-        TLS_1_0 = '0301'
-        TLS_1_1 = '0302'
-        TLS_1_2 = '0303'
-        valid_ssl_versions = [SSL_3_0, TLS_1_0, TLS_1_1, TLS_1_2]
-        return self.range_matches_any(start_byte=2, num_bytes=2, hex_strs=valid_ssl_versions)
+    def is_protocol_change_cipher_spec(self):
+        const = self._constants.ssl
+        start_byte = const['start_bytes']['RECORD_PROTOCOL']
+        num_bytes = const['lengths']['RECORD_PROTOCOL']
+        hex_str = const['protocols']['CHANGE_CIPHER_SPEC']
+        return self.range_matches(start_byte, num_bytes, hex_str)
 
-    def is_ssl_client_hello(self):
-        return self.range_matches_any(start_byte=5, num_bytes=1, hex_str='01')
+    def is_version_valid(self):
+        const = self._constants.ssl
+        valid_ssl_versions = const['versions'].values()
+        start_byte = const['start_bytes']['VERSION']
+        num_bytes = const['lengths']['VERSION']
+        return self.range_matches_any(start_byte, num_bytes, valid_ssl_versions)
 
-    def is_ssl_client_change_cipher_spec(self):
-        return False
+    def is_message_client_hello(self):
+        const = self._constants.ssl
+        start_byte = const['start_bytes']['HANDSHAKE']
+        num_bytes = const['lengths']['HANDSHAKE']
+        hex_str = const['handshake_messages']['CLIENT_HELLO']
+        return self.range_matches(start_byte, num_bytes, hex_str)
+
+    def is_message_change_cipher_spec(self):
+        const = self._constants.ssl
+        start_byte = const['start_bytes']['CHANGE_CIPHER_SPEC']
+        num_bytes = const['lengths']['CHANGE_CIPHER_SPEC']
+        hex_str = const['ccs_messages']['CHANGE_CIPHER_SPEC']
+        return self.range_matches(start_byte, num_bytes, hex_str)
+
+    def is_payload_client_hello(self):
+        return self.is_protocol_handshake() and \
+                self.is_version_valid() and \
+                self.is_message_client_hello()
+
+    def is_payload_client_change_cipher_spec(self):
+        return is_protocol_change_cipher_spec() and \
+                self.is_version_valid() and \
+                self.is_message_change_cipher_spec()
+
 
     def is_ssl_server_change_cipher_spec(self):
         return False
