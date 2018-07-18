@@ -11,11 +11,10 @@
 # If we need an emulator, and running on Ubuntu 16.04 physical, with emulator TD running in QEMU, connecting via tap interface.
 # credit to https://www.cypherpunk.at/2017/08/monitoring-android-emulator-network-traffic/
 
-# TODO: use e.g. pyroute2
-
-#NAT_GATEWAY=192.168.1.1 # home router
-#NAT_GATEWAY=10.62.23.254 # uni - broken
-NAT_GATEWAY=192.168.43.1 # hotspot
+# TODO: detect DNS server automatically 
+NAT_GATEWAY=192.168.1.1 # home router
+#NAT_GATEWAY=10.62.23.254 # uni - this is incorrect
+#NAT_GATEWAY=192.168.43.1 # hotspot
 
 sudo ip link delete tap0 > /dev/null 2>&1
 sudo iptables -t nat -F

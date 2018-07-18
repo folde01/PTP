@@ -22,8 +22,9 @@ class Session_Pair(object):
             This has all the info we need for the stream database.
         """
 
-        stream_status = Stream_Status(tcp_status=self._get_tcp_status(), \
-                ssl_status=self._get_ssl_status())
+        stream_status = Stream_Status(tcp_status=self._get_tcp_status(),
+                                      ssl_status=self._get_ssl_status())
+
         return stream_status
 
 
@@ -120,49 +121,44 @@ class Session_Pair(object):
             return self._ssl_status
 
         self._ssl_handshake_analysis()
-        self._ssl_tunnel_analysis()
-        self._tcp_close_analysis()
+        #self._ssl_tunnel_analysis()
+        #self._tcp_close_analysis()
         return self._ssl_status 
 
     def _ssl_handshake_analysis(self):
-        """ Updates SSL status object for this packet.
-        Looks for TCP handshake followed by the exchange of messages (sometimes called
+        """Updates SSL_Status object for this packet based on first packets exchanged.
+        If TCP handshake is seen then examine the subsequent exchange of messages (sometimes called
         the 'four flights') required to establish the encrypted tunnel, 
-        namely Client Hello, Server Hello and Change Cipher Suite. 
+        namely Client Hello, Server Hello, plus a Change Cipher Suite from client and server.
         Updates SSL status object with SSL version and cipher
         used. Assumes TCP Fast Open is not used, so Client Hello must be sent 
         in client's third packet.
-
-        Returns:
-            bool: True if valid SSL handshake observed, otherwise False.
         """
+        ssl_status = self._ssl_status
+ 
+        if not self._tcp_handshake_is_seen():
+            ssl_status.ssl_handshake_seen = False
+        else:
+            try:
+                flights = (self._cli_to_svr[2],
+                           self._svr_to_cli[2],
+                           self._cli_to_svr[3],
+                           self._svr_to_cli[3])
+            except IndexError:
+                print "Not enough packets for SSL handshake"
+                ssl_status.ssl_handshake_seen = False
+                return
 
-        sp = self 
+        flight_payloads = [TCP_Payload(flights[i]) for i in range(0,4)]
 
-        if not self._tcp_handshake_is_observed():
-            return False
-
-        try:
-            first_flight = self._cli_to_svr[2]
-            second_flight = self._svr_to_cli[2]
-            third_flight = self._cli_to_svr[3]
-            fourth_flight = self._svr_to_cli[3]
-        except IndexError:
-            print "Not enough packets for SSL handshake"
-            return False
-
-        first_flight_dissection = TCP_Payload(first_flight).dissect_first_flight()
-        second_flight_dissection = TCP_Payload(second_flight).dissect_second_flight()
-        third_flight_dissection = TCP_Payload(third_flight).dissect_third_flight()
-        fourth_flight_dissection = TCP_Payload(fourth_flight).dissect_fourth_flight()
-
-        if first_flight_dissection.is_ssl_client_hello and \
-                second_flight_dissection.is_ssl_server_hello and \
-                third_flight_dissection.is_ssl_client_change_cipher_spec and \
-                fourth_flight_dissection.is_ssl_server_change_cipher_spec:
-            return True
-
-        return False
+        # TODO: add try/except block for False case
+        if (flight_payloads[0].is_ssl_client_hello()
+                and flight_payloads[1].is_ssl_server_hello()
+                and flight_payloads[2].is_ssl_client_change_cipher_spec()
+                and flight_payloads[3].is_ssl_server_change_cipher_spec()):
+            ssl_status.ssl_handshake_seen = True
+        else:
+            ssl_status.ssl_handshake_seen = False 
 
 
     def _ssl_tunnel_analysis(self):
@@ -176,7 +172,7 @@ class Session_Pair(object):
     def _packet_has_payload(self, pkt):
         return len(pkt[TCP].payload) > 0
 
-    def _tcp_handshake_is_observed(self):
+    def _tcp_handshake_is_seen(self):
         """prereqs: deduplicated, ordered session pair.
         returns two of first packet in cli_to_svr with a TCP payload. 
         """
@@ -184,10 +180,16 @@ class Session_Pair(object):
         cli_to_svr = self._cli_to_svr
         svr_to_cli = self._svr_to_cli 
 
-        if cli_to_svr[0][TCP].flags == 'S' \
-                and svr_to_cli[0][TCP].flags == 'SA' \
-                and cli_to_svr[1][TCP].flags == 'A':
-            return True
+        try:
+            if cli_to_svr[0][TCP].flags == 'S' \
+                    and svr_to_cli[0][TCP].flags == 'SA' \
+                    and cli_to_svr[1][TCP].flags == 'A':
+                return True
+
+        except TypeError as e:
+            print "_tcp_handshake_is_seen:", e
+            return False
+
         return False
 
 class Test_Session_Pair(unittest.TestCase):
@@ -198,17 +200,17 @@ class Test_Session_Pair(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_tcp_handshake_observed(self):
+    def test_tcp_handshake_seen(self):
         pcap = Constants().TEST_PCAP_DIR + '/tcp-handshake-observed.pcap'
         sr = Session_Reassembler(pcap)
         sp = sr.get_session_pairs().values()[0]
-        self.assertTrue(sp._tcp_handshake_is_observed())
+        self.assertTrue(sp._tcp_handshake_is_seen())
 
     def test_tcp_handshake_missing(self):
         pcap = Constants().TEST_PCAP_DIR + '/tcp-handshake-missing.pcap'
         sr = Session_Reassembler(pcap)
         sp = sr.get_session_pairs().values()[0]
-        self.assertFalse(sp._tcp_handshake_is_observed())
+        self.assertFalse(sp._tcp_handshake_is_seen())
 
 if __name__ == '__main__':
     unittest.main()

@@ -61,9 +61,11 @@ class TCP_Status(object):
 
 class SSL_Status(object):
     def __init__(self, **kwargs):
-        self.ssl_handshake_observed = kwargs.get('ssl_handshake_observed', None)
+        self.ssl_handshake_seen = kwargs.get('ssl_handshake_seen', None)
         self.ssl_version = kwargs.get('ssl_version', None)
         self.ssl_cipher = kwargs.get('ssl_cipher', None)
 
     def get_ssl_tuple(self):
-        return (self.ssl_handshake_observed, self.ssl_version, self.ssl_cipher)
+        return (self.ssl_handshake_seen, self.ssl_version, self.ssl_cipher)
+
+
