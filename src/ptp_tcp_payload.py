@@ -87,11 +87,24 @@ class TCP_Payload(object):
                 s = "Non-hex string given: %s" % hex_str
                 raise ValueError(s) 
 
-            print start_index, end_index
+            #print start_index, end_index
             if self.get_load()[start_index:end_index] == hex_str:
                 return hex_str
 
         return None
+
+
+
+    def is_payload_client_hello(self):
+        return self.is_protocol_handshake() and \
+                self.is_version_valid() and \
+                self.is_message_client_hello()
+
+    def is_payload_client_change_cipher_spec(self):
+        return self.is_protocol_change_cipher_spec() and \
+                self.is_version_valid() and \
+                self.is_message_change_cipher_spec()
+
 
 
     def is_protocol_handshake(self):
@@ -132,16 +145,6 @@ class TCP_Payload(object):
         num_bytes = const['lengths']['CHANGE_CIPHER_SPEC']
         hex_str = const['ccs_messages']['CHANGE_CIPHER_SPEC']
         return self.range_matches(start_byte, num_bytes, hex_str)
-
-    def is_payload_client_hello(self):
-        return self.is_protocol_handshake() and \
-                self.is_version_valid() and \
-                self.is_message_client_hello()
-
-    def is_payload_client_change_cipher_spec(self):
-        return is_protocol_change_cipher_spec() and \
-                self.is_version_valid() and \
-                self.is_message_change_cipher_spec()
 
 
     def is_ssl_server_change_cipher_spec(self):

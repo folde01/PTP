@@ -37,7 +37,7 @@ class Constants:
         self.ssl['ccs_messages']['CHANGE_CIPHER_SPEC'] =           '01'
 
         self.ssl['start_bytes'] = {}
-        self.ssl['start_bytes']['RECORD_PROTOCOL'] =                  0
+        self.ssl['start_bytes']['PROTOCOL'] =                  0
         self.ssl['start_bytes']['VERSION'] =                          1
         self.ssl['start_bytes']['RECORD_DATA_LENGTH'] =               3
         self.ssl['start_bytes']['HANDSHAKE'] =                       5
@@ -45,7 +45,7 @@ class Constants:
         self.ssl['start_bytes']['HANDSHAKE_DATA_LENGTH'] =      6
         
         self.ssl['lengths'] = {}
-        self.ssl['lengths']['RECORD_PROTOCOL'] =                         1
+        self.ssl['lengths']['PROTOCOL'] =                         1
         self.ssl['lengths']['VERSION'] =                        2 
         self.ssl['lengths']['RECORD_DATA_LENGTH'] =             2 
         self.ssl['lengths']['HANDSHAKE'] =                      1 

@@ -4,6 +4,7 @@ from ptp_constants import Constants
 from ptp_connection_status import Stream_Status, TCP_Status, SSL_Status
 import unittest
 from ptp_tcp_payload import TCP_Payload
+import re
 
 class Session_Pair(object):
 
@@ -13,7 +14,7 @@ class Session_Pair(object):
         self._stream_status = None
         self._tcp_status = None
         self._ssl_status = None
-
+	self._const = Constants() 
 
     def get_stream_status(self):
         """
@@ -125,7 +126,69 @@ class Session_Pair(object):
         #self._tcp_close_analysis()
         return self._ssl_status 
 
-    def _ssl_handshake_analysis(self):
+    def _get_load(self, pkt):
+        if pkt.haslayer(Raw):
+            load = pkt[TCP][Raw].load
+            return load.encode('HEX')
+        else:
+            raise TypeError("Packet has no payload.")  
+
+    def _ssl_handshake_client_side_complete(self):
+	const = self._consts.ssl
+	c2s = self._cli_to_svr
+	cli_load = ''
+
+        # First two packets should be enough in most cases but we increase 
+	# it to account for any TCP segmentation or use of client authentication.
+        first_n_packets = 4     
+
+	num_pkts_with_payload = [p.haslayer(Raw) for p in c2s].num(True)
+
+        # concatenate payloads of first packets
+	if num_pkts_with_payload < first_n_packets:
+            cli_load = ''.join([self._get_load(p) for p in c2s if p.haslayer(Raw)])
+        else:
+            for i in range(0, first_n_packets+1):
+                p = c2s[i]
+                if p.haslayer(Raw):
+                    cli_load += self._get_load(p) 
+            
+ 
+        # First two packets should be enough in most cases but we increase 
+	# it to acnum for any TCP segmentation or use of client authentication.
+        first_n_packets = 4     
+	
+        # The payload matches a regex if it has both client hello and change cipher
+        # suite messages (in that order, with any bytes in between).
+	re_cli_hs = re.compile(
+	    r'''
+	    ^
+
+            # client hello match group
+            (
+            16	            # 16: handshake sub-protocol		
+            030[0-3]        # 0300: SSL 3.0, 0301: TLS 1.0, 0302: TLS 1.1, 0303: TLS 1.2
+	    [0-9a-f]{4}     # 2-byte message length
+            01              # 01: client hello message
+	    )
+
+            # anything-in-between match group 
+	    ([0-9a-f]*)     # Any hex digits
+
+            # change cipher suite match group
+	    (
+            14              # 14: change cipher suite sub-protocol
+            030[0-3]        # 0300: SSL 3.0, 0301: TLS 1.0, 0302: TLS 1.1, 0303: TLS 1.2 
+	    [0-9a-f]{4}     # 2-byte message length 
+            01              # 01: change cipher suite message
+	    ) 
+	    ''', re.VERBOSE | re.IGNORECASE)
+
+	match_groups = re_cli_hs.match(cli_load)
+        return bool(match_groups[0]) and bool(match_groups[2])
+
+
+    def _ssl_handshake_analysis_old(self):
         """Updates SSL_Status object for this packet based on first packets exchanged.
         If TCP handshake is seen then examine the subsequent exchange of messages (sometimes called
         the 'four flights') required to establish the encrypted tunnel, 
