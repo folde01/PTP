@@ -1,4 +1,5 @@
-from scapy.all import rdpcap, PacketList, TCP
+#from scapy.all import rdpcap, PacketList, TCP, Raw
+from scapy.all import *
 from ptp_network import Network
 from ptp_constants import Constants
 from ptp_connection_status import Stream_Status, TCP_Status, SSL_Status
@@ -127,48 +128,57 @@ class Session_Pair(object):
         return self._ssl_status 
 
     def _get_load(self, pkt):
+        '''
+        Args:
+            pkt (scapy.all.Packet)
+        Returns:
+            str: TCP payload as a string of hex digits, from Raw layer of scapy packet.
+        Raises:
+            TypeError: If packet has no payload.
+        '''
         if pkt.haslayer(Raw):
             load = pkt[TCP][Raw].load
             return load.encode('HEX')
         else:
             raise TypeError("Packet has no payload.")  
 
-    def _ssl_handshake_client_side_complete(self):
-	const = self._consts.ssl
-	c2s = self._cli_to_svr
-	cli_load = ''
+    def _ssl_handshake_client_side(self):
+	const = self._const.ssl
+	pkt_seq = self._cli_to_svr
+	pkt_seq_load = ''
 
         # First two packets should be enough in most cases but we increase 
 	# it to account for any TCP segmentation or use of client authentication.
         first_n_packets = 4     
 
-	num_pkts_with_payload = [p.haslayer(Raw) for p in c2s].num(True)
+	num_pkts_with_payload = [p.haslayer(Raw) for p in pkt_seq].count(True)
 
         # concatenate payloads of first packets
 	if num_pkts_with_payload < first_n_packets:
-            cli_load = ''.join([self._get_load(p) for p in c2s if p.haslayer(Raw)])
+            pkt_seq_load = ''.join([self._get_load(p) for p in pkt_seq if p.haslayer(Raw)])
         else:
             for i in range(0, first_n_packets+1):
-                p = c2s[i]
+                p = pkt_seq[i]
                 if p.haslayer(Raw):
-                    cli_load += self._get_load(p) 
+                    pkt_seq_load += self._get_load(p) 
             
- 
-        # First two packets should be enough in most cases but we increase 
-	# it to acnum for any TCP segmentation or use of client authentication.
-        first_n_packets = 4     
-	
+        #print "pkt_seq_load:", pkt_seq_load
+
         # The payload matches a regex if it has both client hello and change cipher
         # suite messages (in that order, with any bytes in between).
-	re_cli_hs = re.compile(
+	regex = re.compile(
 	    r'''
 	    ^
 
             # client hello match group
             (
+
+            # RECORD layer:
             16	            # 16: handshake sub-protocol		
             030[0-3]        # 0300: SSL 3.0, 0301: TLS 1.0, 0302: TLS 1.1, 0303: TLS 1.2
 	    [0-9a-f]{4}     # 2-byte message length
+
+            # HANDSHAKE layer:
             01              # 01: client hello message
 	    )
 
@@ -184,8 +194,130 @@ class Session_Pair(object):
 	    ) 
 	    ''', re.VERBOSE | re.IGNORECASE)
 
-	match_groups = re_cli_hs.match(cli_load)
-        return bool(match_groups[0]) and bool(match_groups[2])
+	match = regex.match(pkt_seq_load)
+        if match:
+            #print "groups:", regex.match(pkt_seq_load).groups()
+            return all(bool(group) for group in regex.match(pkt_seq_load).groups())
+        else:
+            return False
+
+    def _ssl_handshake_server_side(self):
+	const = self._const.ssl
+	pkt_seq = self._svr_to_cli
+	pkt_seq_load = ''
+
+        # First two packets should be enough in most cases but we increase 
+	# it to account for any TCP segmentation or use of client authentication.
+        first_n_packets = 4     
+
+	num_pkts_with_payload = [p.haslayer(Raw) for p in pkt_seq].count(True)
+
+        # concatenate payloads of first packets
+	if num_pkts_with_payload < first_n_packets:
+            pkt_seq_load = ''.join([self._get_load(p) for p in pkt_seq if p.haslayer(Raw)])
+        else:
+            for i in range(0, first_n_packets+1):
+                p = pkt_seq[i]
+                if p.haslayer(Raw):
+                    pkt_seq_load += self._get_load(p) 
+            
+        print "pkt_seq_load:", pkt_seq_load
+
+        '''
+        The payload if it has both server hello and change cipher
+        suite messages (in that order, with any bytes in between). This has to 
+        be done in parts. The first part ends with the session ID length,
+        as we need to know what it is before proceeding. We grab the agreed 
+        SSL version from the handshake sub-protocol layer along the way.
+        '''
+
+        re_record_layer =  r'''
+            ^(
+                16	        # 16: handshake sub-protocol		
+                030[0-3]        # 0300: SSL 3.0, 0301: TLS 1.0, 0302: TLS 1.1, 0303: TLS 1.2
+                [0-9a-f]{4}     # 2-byte message length
+            )
+            '''
+
+        re_handshake_layer =  r'''
+            (
+                02              # 02: server hello message
+                [0-9a-f]{6}     # 3-byte message length
+                (030[0-3])      # Agreed version: 0300: SSL 3.0, 0301: TLS 1.0, 
+                                #   0302: TLS 1.1, 0303: TLS 1.2
+                [0-9a-f]{64}    # 4-byte date followed by 28 random bytes
+                ([0-9a-f]{2})   # 1-byte session ID length
+	    )
+	    '''
+
+        re_part_1 = re_record_layer + re_handshake_layer
+
+	regex = re.compile(re_part_1, re.VERBOSE | re.IGNORECASE)
+
+	match = regex.match(pkt_seq_load)
+
+        if not match:
+            return False
+
+        groups = match.groups()
+        #ssl_version_group = 1
+        ssl_version_group = 2
+        ssl_version = groups[ssl_version_group]
+        #length_session_id_group = 2
+        length_session_id_group = 3
+        length_session_id = 2 * int(groups[length_session_id_group], 16)
+        print "groups:", groups, "ssl_version:", ssl_version, "length_session_id:", length_session_id
+
+        '''
+        With session ID length in hand, we now search the next part of the payload,
+        starting with where we left off, and looking for a session ID of the
+        specified length, followed by the cipher suite.
+        '''
+
+        re_session_id = r'([0-9a-f]{' + re.escape(str(length_session_id)) + r'})'
+
+        # 2-byte code for cipher suite 
+        re_cipher_suite = r'([0-9a-f]{4})' 
+
+        # To account for possibility of server hello and change cipher spec   
+        # appearing in the same packet or subsequent packets:
+        re_any = r'([0-9a-f]*)' 
+
+        re_change_cipher_spec =  r'''
+            (
+                # RECORD layer:
+                14	        # 14: change cipher spec sub-protocol		
+                030[0-3]        # 0300: SSL 3.0, 0301: TLS 1.0, 0302: TLS 1.1, 0303: TLS 1.2
+                [0-9a-f]{4}     # 2-byte message length
+                
+                # CHANGE CIPHER SPEC layer:
+                01              # 01: change cipher spec message
+
+                # RECORD layer:
+                16	        # 16: handshake sub-protocol		
+                030[0-3]        # 0300: SSL 3.0, 0301: TLS 1.0, 0302: TLS 1.1, 0303: TLS 1.2
+                [0-9a-f]{4}     # 2-bytes: length of encrypted message to follow
+	    )
+	    '''
+
+        #re_full = re_part_1 + re_session_id + re_cipher_suite + re_any + re_change_cipher_spec
+        #re_full = re_part_1 + re_session_id + re_cipher_suite + re_any
+        re_full = re_part_1 + re_session_id
+
+	regex = re.compile(re_full, re.VERBOSE | re.IGNORECASE)
+	match = regex.match(pkt_seq_load)
+
+        if not match:
+            return False
+
+        #re_session_id_group = 3
+        re_session_id_group = 4
+        #re_cipher_suite_group = 4
+        re_cipher_suite_group = 5
+        groups = match.groups()
+        #cipher_suite = groups[re_cipher_suite_group] # TODO: IndexError if not
+        print "groups:", groups
+
 
 
     def _ssl_handshake_analysis_old(self):
