@@ -59,11 +59,27 @@ class TCP_Status(object):
         return (self.cli_ip, self.cli_pt, self.svr_ip, self.svr_pt, \
                 self.bytes_to_svr, self.bytes_to_cli, self.ts_first_pkt, self.ts_last_pkt)
 
+
 class SSL_Status(object):
     def __init__(self, **kwargs):
-        self.ssl_handshake_seen = kwargs.get('ssl_handshake_seen', None)
-        self.ssl_version = kwargs.get('ssl_version', None)
-        self.ssl_cipher = kwargs.get('ssl_cipher', None)
+        self.client_hello = kwargs.get('client_hello', None)
+        self.client_change_cipher_spec = kwargs.get('client_change_cipher_spec', None)
+        self.server_hello = kwargs.get('server_hello', None)
+        self.version = kwargs.get('version', None)
+        self.cipher = kwargs.get('cipher', None)
+        self.server_change_cipher_spec = kwargs.get('server_change_cipher_spec', None)
+
+    def set_client_hello(self, client_hello_seen):
+        self.client_hello = client_hello_seen
+
+
+    def show(self):
+        print "client_hello:", str(self.client_hello), "\n", \
+                "client_change_cipher_spec:", str(self.client_change_cipher_spec), "\n", \
+                "server_hello:", str(self.server_hello), "\n", \
+                "version:", str(self.version), "\n", \
+                "cipher:", str(self.cipher), "\n", \
+                "server_change_cipher_spec:", str(self.server_change_cipher_spec), "\n" \
 
     def get_ssl_tuple(self):
         return (self.ssl_handshake_seen, self.ssl_version, self.ssl_cipher)

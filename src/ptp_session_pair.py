@@ -14,7 +14,7 @@ class Session_Pair(object):
         self._svr_to_cli = svr_to_cli
         self._stream_status = None
         self._tcp_status = None
-        self._ssl_status = None
+        self._ssl_status = SSL_Status()
 	self._const = Constants() 
 
     def get_stream_status(self):
@@ -87,6 +87,7 @@ class Session_Pair(object):
             size += len(pkt[TCP].payload)
         return size
 
+
     def _get_start_and_end_ts(self):
         """returns two-tuple containing lowest and highest timestamps in Epoch seconds, in microseconds.
         returns None if session is None"""
@@ -110,8 +111,10 @@ class Session_Pair(object):
 
         return (lowest_ts, highest_ts)
 
+
     def _get_pkt_payload_length(self, pkt):
         return len(pkt[TCP].payload)
+
 
     def _get_ssl_status(self):
         """Examine use (or otherwise) of SSL protocol.
@@ -119,20 +122,20 @@ class Session_Pair(object):
         Returns:
             SSL_Status object containing details of SSL use.
         """
-        if self._ssl_status is not None:
-            return self._ssl_status
-
-        self._ssl_handshake_analysis()
+        self._ssl_handshake_client_analysis()
+        self._ssl_handshake_server_analysis()
         #self._ssl_tunnel_analysis()
         #self._tcp_close_analysis()
         return self._ssl_status 
+
 
     def _get_load(self, pkt):
         '''
         Args:
             pkt (scapy.all.Packet)
         Returns:
-            str: TCP payload as a string of hex digits, from Raw layer of scapy packet.
+            str: TCP payload of a single packet as a string of hex digits,
+                from Raw layer of scapy packet.
         Raises:
             TypeError: If packet has no payload.
         '''
@@ -142,7 +145,9 @@ class Session_Pair(object):
         else:
             raise TypeError("Packet has no payload.")  
 
-    def _ssl_handshake_client_side(self):
+
+    def _ssl_handshake_client_analysis(self):
+        status = self._ssl_status
 	const = self._const.ssl
 	pkt_seq = self._cli_to_svr
 	pkt_seq_load = ''
@@ -173,42 +178,50 @@ class Session_Pair(object):
             # client hello match group
             (
 
-            # RECORD layer:
-            16	            # 16: handshake sub-protocol		
-            030[0-3]        # 0300: SSL 3.0, 0301: TLS 1.0, 0302: TLS 1.1, 0303: TLS 1.2
-	    [0-9a-f]{4}     # 2-byte message length
+                # RECORD layer:
+                16	            # 16: handshake sub-protocol		
+                030[0-3]        # 0300: SSL 3.0, 0301: TLS 1.0, 0302: TLS 1.1, 0303: TLS 1.2
+                [0-9a-f]{4}     # 2-byte message length
 
-            # HANDSHAKE layer:
-            01              # 01: client hello message
+                # HANDSHAKE layer:
+                01              # 01: client hello message
 	    )
 
             # anything-in-between match group 
-	    ([0-9a-f]*)     # Any hex digits
+	    [0-9a-f]*     # Any hex digits
 
             # change cipher suite match group
 	    (
-            14              # 14: change cipher suite sub-protocol
-            030[0-3]        # 0300: SSL 3.0, 0301: TLS 1.0, 0302: TLS 1.1, 0303: TLS 1.2 
-	    [0-9a-f]{4}     # 2-byte message length 
-            01              # 01: change cipher suite message
+                14              # 14: change cipher suite sub-protocol
+                030[0-3]        # 0300: SSL 3.0, 0301: TLS 1.0, 0302: TLS 1.1, 0303: TLS 1.2 
+                [0-9a-f]{4}     # 2-byte message length 
+                01              # 01: change cipher suite message
 	    ) 
 	    ''', re.VERBOSE | re.IGNORECASE)
 
 	match = regex.match(pkt_seq_load)
-        if match:
-            #print "groups:", regex.match(pkt_seq_load).groups()
-            return all(bool(group) for group in regex.match(pkt_seq_load).groups())
-        else:
-            return False
 
-    def _ssl_handshake_server_side(self):
+        if match:
+            groups = match.groups()
+            #print "groups:", groups
+            client_hello_group_index = 0
+            ccs_group_index = 1
+            self._ssl_status.client_hello = bool(groups[client_hello_group_index]) 
+            #print "show:", self._ssl_status.show()
+            self._ssl_status.client_change_cipher_spec = bool(groups[ccs_group_index])
+
+
+    def _ssl_handshake_server_analysis(self):
 	const = self._const.ssl
 	pkt_seq = self._svr_to_cli
 	pkt_seq_load = ''
 
-        # First two packets should be enough in most cases but we increase 
-	# it to account for any TCP segmentation or use of client authentication.
-        first_n_packets = 4     
+        '''
+        The first two loaded packets is not enough as we must account for any TCP
+        segmentation or use of client authentication. Setting it too high means we 
+        waste time searching payloads unlikely to contain anything we need.
+        '''
+        first_n_packets = 8
 
 	num_pkts_with_payload = [p.haslayer(Raw) for p in pkt_seq].count(True)
 
@@ -257,16 +270,29 @@ class Session_Pair(object):
 	match = regex.match(pkt_seq_load)
 
         if not match:
-            return False
+            return
 
         groups = match.groups()
-        #ssl_version_group = 1
+        
+        # Set whether server hello seen
+        handshake_record_group = 0
+        server_hello_group = 1
+        server_hello_seen = bool(groups[handshake_record_group]) and \
+                bool(groups[server_hello_group])
+        self._ssl_status.server_hello = server_hello_seen 
+
         ssl_version_group = 2
-        ssl_version = groups[ssl_version_group]
-        #length_session_id_group = 2
+
+        # Set SSL version
+        if bool(groups[ssl_version_group]):
+            ssl_version = groups[ssl_version_group]
+            self._ssl_status.version = ssl_version
+
         length_session_id_group = 3
         length_session_id = 2 * int(groups[length_session_id_group], 16)
-        print "groups:", groups, "ssl_version:", ssl_version, "length_session_id:", length_session_id
+
+        #print "SERVER HELLO -- ssl_version:", ssl_version, "length_session_id:", length_session_id, \
+        #    "groups:", groups
 
         '''
         With session ID length in hand, we now search the next part of the payload,
@@ -274,7 +300,7 @@ class Session_Pair(object):
         specified length, followed by the cipher suite.
         '''
 
-        re_session_id = r'([0-9a-f]{' + re.escape(str(length_session_id)) + r'})'
+        re_session_id = r'[0-9a-f]{' + re.escape(str(length_session_id)) + r'}'
 
         # 2-byte code for cipher suite 
         re_cipher_suite = r'([0-9a-f]{4})' 
@@ -292,31 +318,42 @@ class Session_Pair(object):
                 
                 # CHANGE CIPHER SPEC layer:
                 01              # 01: change cipher spec message
+	    )
+	    '''
 
+        re_start_of_encrypted_tunnel =  r'''
+            (
                 # RECORD layer:
                 16	        # 16: handshake sub-protocol		
                 030[0-3]        # 0300: SSL 3.0, 0301: TLS 1.0, 0302: TLS 1.1, 0303: TLS 1.2
                 [0-9a-f]{4}     # 2-bytes: length of encrypted message to follow
-	    )
+            )
 	    '''
 
-        #re_full = re_part_1 + re_session_id + re_cipher_suite + re_any + re_change_cipher_spec
-        #re_full = re_part_1 + re_session_id + re_cipher_suite + re_any
-        re_full = re_part_1 + re_session_id
+        re_full = re_part_1 + re_session_id + re_cipher_suite + re_any + \
+                re_change_cipher_spec + re_start_of_encrypted_tunnel
 
 	regex = re.compile(re_full, re.VERBOSE | re.IGNORECASE)
 	match = regex.match(pkt_seq_load)
 
         if not match:
-            return False
+            return
 
-        #re_session_id_group = 3
-        re_session_id_group = 4
-        #re_cipher_suite_group = 4
-        re_cipher_suite_group = 5
-        groups = match.groups()
-        #cipher_suite = groups[re_cipher_suite_group] # TODO: IndexError if not
-        print "groups:", groups
+
+        if match:
+            groups = match.groups()
+
+            cipher_suite_group = 4
+            cipher = groups[cipher_suite_group] # TODO: IndexError if not
+            self._ssl_status.cipher = cipher
+
+            change_cipher_spec_group = 5
+            start_of_encrypted_tunnel_group = 6
+            self._ssl_status.server_change_cipher_spec = bool(groups[change_cipher_spec_group]) \
+                    and bool(groups[start_of_encrypted_tunnel_group])
+
+            #print "matched_all:", matched_all, "ssl_version:", ssl_version, \
+            #    "cipher_suite:", cipher_suite, "groups:", groups,
 
 
 
