@@ -20,6 +20,28 @@ class Stream_Status(object):
         """Returns an object with attribute/value pairs needed to create a row in an 
         HTML table of streams."""
         ts=self.tcp_status
+        ss=self.ssl_status
+        flattened = Stream_Flattened(
+                cli_ip = ts.cli_ip,
+                cli_pt = ts.cli_pt,
+                svr_ip = ts.svr_ip,
+                svr_pt = ts.svr_pt,
+                bytes_to_svr = ts.bytes_to_svr,
+                bytes_to_cli = ts.bytes_to_cli,
+                ts_first_pkt = ts.ts_first_pkt,
+                ts_last_pkt = ts.ts_last_pkt,
+                ssl_cli_hello = ss.client_hello,
+                ssl_cli_ccs = ss.client_change_cipher_spec,
+                ssl_svr_hello = ss.server_hello,
+                ssl_version = ss.version,
+                ssl_cipher = ss.cipher,
+                ssl_svr_ccs = ss.server_change_cipher_spec)
+        return flattened
+
+    def get_flattened_old(self):
+        """Returns an object with attribute/value pairs needed to create a row in an 
+        HTML table of streams."""
+        ts=self.tcp_status
         flattened = Stream_Flattened(
                 cli_ip = ts.cli_ip,
                 cli_pt = ts.cli_pt,

@@ -10,11 +10,57 @@ class Stream_DB:
 
     _logger = Logger(logfile="ptp_stream_db.log")
 
-    def persist_streams(self, stream_status_collection):
+    _sql_streams_table_columns = """streams (cli_ip, cli_pt, svr_ip, svr_pt, bytes_to_svr, bytes_to_cli, ts_first_pkt, ts_last_pkt, ssl_cli_hello, ssl_cli_ccs, ssl_svr_hello, ssl_version, ssl_cipher, ssl_svr_ccs)"""
+
+    _sql_stream_table_values = """VALUES (inet6_aton(\'%s\'), %d, inet6_aton(\'%s\'), %d, %d, %d, '%s', '%s', %d, %d, %d, '%s', '%s', %d)"""
+
+    def select_all_streams(self):
+        streams = []
+        rows = self._select_all_stream_rows()
+        for row in rows:
+            id, cli_ip, cli_pt, svr_ip, svr_pt, bytes_to_svr, bytes_to_cli, \
+                ts_first_pkt, ts_last_pkt, ssl_cli_hello, ssl_cli_ccs, \
+                ssl_svr_hello, ssl_version, ssl_cipher, ssl_svr_ccs = row
+            tcp_status = TCP_Status(cli_ip=cli_ip, cli_pt=cli_pt, svr_ip=svr_ip,
+                svr_pt=svr_pt, bytes_to_svr=bytes_to_svr, bytes_to_cli=bytes_to_cli,
+                ts_first_pkt=ts_first_pkt, ts_last_pkt=ts_last_pkt)
+            ssl_status = SSL_Status(ssl_cli_hello=bool(ssl_cli_hello), ssl_cli_ccs=bool(ssl_cli_ccs), \
+                    ssl_svr_hello=bool(ssl_svr_hello), ssl_version=ssl_version, \
+                    ssl_cipher=ssl_cipher, ssl_svr_ccs=bool(ssl_svr_ccs))
+            stream_status = Stream_Status(id=id, tcp_status=tcp_status, \
+                    ssl_status=ssl_status).get_flattened()
+            streams.append(stream_status)
+        return streams
+
+    def persist_streams(self, stream_statuses):
         conn = self._get_conn_to_ptp_db()
 	cursor = conn.cursor()
         try:
-            for stream_status in stream_status_collection: 
+            for stream_status in stream_statuses: 
+                ts = stream_status.tcp_status
+                ss = stream_status.ssl_status
+                #print ts.cli_ip, ts.cli_pt, ts.svr_ip, ts.svr_pt, ts.bytes_to_svr, ts.bytes_to_cli, ts.ts_first_pkt, ts.ts_last_pkt
+
+                sql = ' '.join("INSERT INTO", _sql_streams_table_columns, _sql_stream_table_values) % \
+                    (ts.cli_ip, ts.cli_pt, ts.svr_ip, ts.svr_pt, int(ts.bytes_to_svr), int(ts.bytes_to_cli),
+                     self._epoch_to_datetime(ts.ts_first_pkt), self._epoch_to_datetime(ts.ts_last_pkt),
+                     ss.client_hello, ss.client_change_cipher_spec, ss.server_hello, ss.version, 
+                     ss.cipher, ss.server_change_cipher_spec)
+ 
+                cursor.execute(sql)
+            conn.commit()
+        except MySQLdb.OperationalError as e:
+            print("Insert failed: ", e)
+            conn.rollback()
+        finally:
+            cursor.close()
+            conn.close()
+
+    def persist_streams_old(self, stream_statuses):
+        conn = self._get_conn_to_ptp_db()
+	cursor = conn.cursor()
+        try:
+            for stream_status in stream_statuses: 
                 tcp_status = stream_status.tcp_status
                 ssl_status = stream_status.ssl_status
                 #print tcp_status.cli_ip, tcp_status.cli_pt, tcp_status.svr_ip, tcp_status.svr_pt, tcp_status.bytes_to_svr, tcp_status.bytes_to_cli, tcp_status.ts_first_pkt, tcp_status.ts_last_pkt
@@ -40,6 +86,27 @@ class Stream_DB:
         return date
 
     def persist_stream(self, stream_status):
+        ts = stream_status.tcp_status
+        ss = stream_status.ssl_status
+        conn = self._get_conn_to_ptp_db()
+	cursor = conn.cursor()
+        try:
+            sql = ' '.join("INSERT INTO", _sql_streams_table_columns, _sql_stream_table_values) % \
+                (ts.cli_ip, ts.cli_pt, ts.svr_ip, ts.svr_pt, int(ts.bytes_to_svr), int(ts.bytes_to_cli),
+                 self._epoch_to_datetime(ts.ts_first_pkt), self._epoch_to_datetime(ts.ts_last_pkt),
+                 int(ss.client_hello), int(ss.client_change_cipher_spec), int(ss.server_hello), str(ss.version), 
+                 str(ss.cipher), int(ss.server_change_cipher_spec))
+
+            cursor.execute(sql)
+            conn.commit()
+        except MySQLdb.OperationalError as e:
+            print("Insert failed: ", e)
+            conn.rollback()
+        finally:
+            cursor.close()
+            conn.close()
+
+    def persist_stream_old(self, stream_status):
         tcp_status = stream_status.tcp_status
         ssl_status = stream_status.ssl_status
         conn = self._get_conn_to_ptp_db()
@@ -62,6 +129,21 @@ class Stream_DB:
             cursor.close()
             conn.close()
 
+    def select_all_streams_old(self):
+        streams = []
+        rows = self._select_all_stream_rows()
+        for row in rows:
+            id, cli_ip, cli_pt, svr_ip, svr_pt, bytes_to_svr, bytes_to_cli, \
+                ts_first_pkt, ts_last_pkt = row
+            tcp_status = TCP_Status(cli_ip=cli_ip, cli_pt=cli_pt, svr_ip=svr_ip,
+                svr_pt=svr_pt, bytes_to_svr=bytes_to_svr, bytes_to_cli=bytes_to_cli,
+                ts_first_pkt=ts_first_pkt, ts_last_pkt=ts_last_pkt)
+            ssl_status = SSL_Status()
+            stream_status = Stream_Status(id=id, tcp_status=tcp_status, \
+                    ssl_status=ssl_status).get_flattened()
+            streams.append(stream_status)
+        return streams
+    
     def select_all_streams(self):
         streams = []
         rows = self._select_all_stream_rows()
@@ -180,7 +262,7 @@ class Stream_DB:
         cursor = conn.cursor()
         cursor.execute("create database ptp;")
 
-    def create_table_streams(self):
+    def create_table_streams_old(self):
         conn = self._get_conn_to_ptp_db()
         cursor = conn.cursor()
         #sql = """create table streams (id int not null primary key auto_increment, dest_ip varbinary(16), dest_pt int(5), src_ip varbinary(16), src_pt int(5), b_sent int(6), b_rcvd int(10))"""
@@ -196,6 +278,31 @@ class Stream_DB:
         cursor.execute(sql)
 	cursor.close()
         conn.close()
+
+    def create_table_streams(self):
+        conn = self._get_conn_to_ptp_db()
+        cursor = conn.cursor()
+
+        sql = """create table streams (id int not null primary key auto_increment,
+            cli_ip varbinary(16),
+            cli_pt int(5),
+            svr_ip varbinary(16),
+            svr_pt int(5), 
+            bytes_to_cli int(10),
+            bytes_to_svr int(6),
+            ts_first_pkt datetime, 
+            ts_last_pkt datetime, 
+            ssl_cli_hello bool,
+            ssl_cli_ccs bool,
+            ssl_svr_hello bool,
+            ssl_version varbinary(16),
+            ssl_cipher varbinary(16),
+            ssl_svr_ccs bool )"""
+
+        cursor.execute(sql)
+	cursor.close()
+        conn.close()
+
 
     def log(self, msg):
         self._logger.log(msg)
