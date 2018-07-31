@@ -150,6 +150,11 @@ class Session_Pair(object):
         status = self._ssl_status
 	const = self._const.ssl
 	pkt_seq = self._cli_to_svr
+
+        if pkt_seq is None:
+            print "cli_to_svr is None"
+            return
+
 	pkt_seq_load = ''
 
         # First two packets should be enough in most cases but we increase 
@@ -206,14 +211,19 @@ class Session_Pair(object):
             #print "groups:", groups
             client_hello_group_index = 0
             ccs_group_index = 1
-            self._ssl_status.client_hello = bool(groups[client_hello_group_index]) 
+            self._ssl_status.ssl_cli_hello = bool(groups[client_hello_group_index]) 
             #print "show:", self._ssl_status.show()
-            self._ssl_status.client_change_cipher_spec = bool(groups[ccs_group_index])
+            self._ssl_status.ssl_cli_ccs = bool(groups[ccs_group_index])
 
 
     def _ssl_handshake_server_analysis(self):
 	const = self._const.ssl
 	pkt_seq = self._svr_to_cli
+
+        if pkt_seq is None:
+            print "svr_to_cli is None"
+            return
+        
 	pkt_seq_load = ''
 
         '''
@@ -223,7 +233,8 @@ class Session_Pair(object):
         '''
         first_n_packets = 8
 
-	num_pkts_with_payload = [p.haslayer(Raw) for p in pkt_seq].count(True)
+        num_pkts_with_payload = [p.haslayer(Raw) for p in pkt_seq].count(True)
+
 
         # concatenate payloads of first packets
 	if num_pkts_with_payload < first_n_packets:
@@ -279,14 +290,14 @@ class Session_Pair(object):
         server_hello_group = 1
         server_hello_seen = bool(groups[handshake_record_group]) and \
                 bool(groups[server_hello_group])
-        self._ssl_status.server_hello = server_hello_seen 
+        self._ssl_status.ssl_svr_hello = server_hello_seen 
 
         ssl_version_group = 2
 
         # Set SSL version
         if bool(groups[ssl_version_group]):
             ssl_version = groups[ssl_version_group]
-            self._ssl_status.version = ssl_version
+            self._ssl_status.ssl_version = ssl_version
 
         length_session_id_group = 3
         length_session_id = 2 * int(groups[length_session_id_group], 16)
@@ -345,11 +356,11 @@ class Session_Pair(object):
 
             cipher_suite_group = 4
             cipher = groups[cipher_suite_group] # TODO: IndexError if not
-            self._ssl_status.cipher = cipher
+            self._ssl_status.ssl_cipher = cipher
 
             change_cipher_spec_group = 5
             start_of_encrypted_tunnel_group = 6
-            self._ssl_status.server_change_cipher_spec = bool(groups[change_cipher_spec_group]) \
+            self._ssl_status.ssl_svr_ccs = bool(groups[change_cipher_spec_group]) \
                     and bool(groups[start_of_encrypted_tunnel_group])
 
             #print "matched_all:", matched_all, "ssl_version:", ssl_version, \

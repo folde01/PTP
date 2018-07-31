@@ -1,4 +1,4 @@
-#!/usr/bin/env
+#!/usr/bin/env bash
 
 # Starts Android Studio AVD emulator using QEMU and tap interface.
 # prereqs: create Nexus_5_API_24 in AVD Manager; tap interface (see ptp_networking.sh)

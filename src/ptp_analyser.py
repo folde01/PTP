@@ -14,14 +14,21 @@ class Analyser:
             Session_Reassembler(self._sniffer.get_pcap_filename())
 	self._stream_db = Stream_DB()
 
+    def results_no_db(self):
+        session_pairs = self._get_session_pairs()
+        stream_statuses = [ pair.get_stream_status() for pair in session_pairs ]
+        return Stream_Table(stream_statuses) 
+
     def results(self):
         session_pairs = self._get_session_pairs()
-        streams = [ pair.get_stream_status() for pair in session_pairs ]
+        stream_statuses = [ pair.get_stream_status() for pair in session_pairs ]
 	db = self._stream_db
         db.clear_streams()
-        db.persist_streams(streams)
-        #print "yoda"
-        return Stream_Table(db.select_all_streams()) 
+        db.persist_streams(stream_statuses)
+        print "yoda"
+        stream_statuses = db.select_all_streams()
+        #print "stream_statuses:", stream_statuses
+        return Stream_Table(stream_statuses) 
 
     def get_sniffer(self):
         return self._sniffer

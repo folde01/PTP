@@ -30,12 +30,12 @@ class Stream_Status(object):
                 bytes_to_cli = ts.bytes_to_cli,
                 ts_first_pkt = ts.ts_first_pkt,
                 ts_last_pkt = ts.ts_last_pkt,
-                ssl_cli_hello = ss.client_hello,
-                ssl_cli_ccs = ss.client_change_cipher_spec,
-                ssl_svr_hello = ss.server_hello,
-                ssl_version = ss.version,
-                ssl_cipher = ss.cipher,
-                ssl_svr_ccs = ss.server_change_cipher_spec)
+                ssl_cli_hello = ss.ssl_cli_hello,
+                ssl_cli_ccs = ss.ssl_cli_ccs,
+                ssl_svr_hello = ss.ssl_svr_hello,
+                ssl_version = ss.ssl_version,
+                ssl_cipher = ss.ssl_cipher,
+                ssl_svr_ccs = ss.ssl_svr_ccs)
         return flattened
 
     def get_flattened_old(self):
@@ -84,24 +84,24 @@ class TCP_Status(object):
 
 class SSL_Status(object):
     def __init__(self, **kwargs):
-        self.client_hello = kwargs.get('client_hello', None)
-        self.client_change_cipher_spec = kwargs.get('client_change_cipher_spec', None)
-        self.server_hello = kwargs.get('server_hello', None)
-        self.version = kwargs.get('version', None)
-        self.cipher = kwargs.get('cipher', None)
-        self.server_change_cipher_spec = kwargs.get('server_change_cipher_spec', None)
+        self.ssl_cli_hello = kwargs.get('ssl_cli_hello', False)
+        self.ssl_cli_ccs = kwargs.get('ssl_cli_ccs', False)
+        self.ssl_svr_hello = kwargs.get('ssl_svr_hello', False)
+        self.ssl_version = kwargs.get('ssl_version', "NO VERSION")
+        self.ssl_cipher = kwargs.get('ssl_cipher', "NO CIPHER")
+        self.ssl_svr_ccs = kwargs.get('ssl_svr_ccs', False)
 
     def set_client_hello(self, client_hello_seen):
-        self.client_hello = client_hello_seen
+        self.ssl_cli_hello = client_hello_seen
 
 
     def show(self):
-        print "client_hello:", str(self.client_hello), "\n", \
-                "client_change_cipher_spec:", str(self.client_change_cipher_spec), "\n", \
-                "server_hello:", str(self.server_hello), "\n", \
-                "version:", str(self.version), "\n", \
-                "cipher:", str(self.cipher), "\n", \
-                "server_change_cipher_spec:", str(self.server_change_cipher_spec), "\n" \
+        print "ssl_cli_hello:", str(self.ssl_cli_hello), "\n", \
+                "ssl_cli_ccs:", str(self.ssl_cli_ccs), "\n", \
+                "ssl_svr_hello:", str(self.ssl_svr_hello), "\n", \
+                "ssl_version:", str(self.ssl_version), "\n", \
+                "ssl_cipher:", str(self.ssl_cipher), "\n", \
+                "ssl_svr_ccs:", str(self.ssl_svr_ccs), "\n" \
 
     def get_ssl_tuple(self):
         return (self.ssl_handshake_seen, self.ssl_version, self.ssl_cipher)

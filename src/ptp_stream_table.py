@@ -20,7 +20,7 @@ class Stream_Table(Table):
     ssl_svr_hello = Col('SH seen')
     ssl_version = Col('SSL ver')
     ssl_cipher = Col('SSL ciph')
-    ssl_svr_ccs = Col('SCCS seen'))"""
+    ssl_svr_ccs = Col('SCCS seen')
 
 
     '''

@@ -1,36 +1,50 @@
+from __future__ import print_function
 from datetime import datetime
 import time
 import MySQLdb
-from ptp_connection_status import Stream_Status, TCP_Status, SSL_Status
+from ptp_connection_status import Stream_Status, TCP_Status, SSL_Status, Stream_Flattened
 import sys
 from ptp_logger import Logger
 
 
 class Stream_DB:
 
-    _logger = Logger(logfile="ptp_stream_db.log")
+    def __init__(self):
+        self._sql_streams_table_columns = \
+            """streams (cli_ip, cli_pt, svr_ip, svr_pt, bytes_to_svr, bytes_to_cli, ts_first_pkt, ts_last_pkt, ssl_cli_hello, ssl_cli_ccs, ssl_svr_hello, ssl_version, ssl_cipher, ssl_svr_ccs)"""
 
-    _sql_streams_table_columns = """streams (cli_ip, cli_pt, svr_ip, svr_pt, bytes_to_svr, bytes_to_cli, ts_first_pkt, ts_last_pkt, ssl_cli_hello, ssl_cli_ccs, ssl_svr_hello, ssl_version, ssl_cipher, ssl_svr_ccs)"""
-
-    _sql_stream_table_values = """VALUES (inet6_aton(\'%s\'), %d, inet6_aton(\'%s\'), %d, %d, %d, '%s', '%s', %d, %d, %d, '%s', '%s', %d)"""
+        self._sql_stream_table_values = \
+            """VALUES (inet6_aton(\'%s\'), %d, inet6_aton(\'%s\'), %d, %d, %d, '%s', '%s', %d, %d, %d, '%s', '%s', %d)"""
 
     def select_all_streams(self):
-        streams = []
+        stream_statuses = []
         rows = self._select_all_stream_rows()
+
+        fd = open('db.log', 'w') 
+
         for row in rows:
+
+            fd.write("row: %s\n" % repr(row)) 
+
             id, cli_ip, cli_pt, svr_ip, svr_pt, bytes_to_svr, bytes_to_cli, \
                 ts_first_pkt, ts_last_pkt, ssl_cli_hello, ssl_cli_ccs, \
                 ssl_svr_hello, ssl_version, ssl_cipher, ssl_svr_ccs = row
-            tcp_status = TCP_Status(cli_ip=cli_ip, cli_pt=cli_pt, svr_ip=svr_ip,
-                svr_pt=svr_pt, bytes_to_svr=bytes_to_svr, bytes_to_cli=bytes_to_cli,
-                ts_first_pkt=ts_first_pkt, ts_last_pkt=ts_last_pkt)
-            ssl_status = SSL_Status(ssl_cli_hello=bool(ssl_cli_hello), ssl_cli_ccs=bool(ssl_cli_ccs), \
-                    ssl_svr_hello=bool(ssl_svr_hello), ssl_version=ssl_version, \
-                    ssl_cipher=ssl_cipher, ssl_svr_ccs=bool(ssl_svr_ccs))
-            stream_status = Stream_Status(id=id, tcp_status=tcp_status, \
-                    ssl_status=ssl_status).get_flattened()
-            streams.append(stream_status)
-        return streams
+
+            stream_status = Stream_Flattened(cli_ip=cli_ip, cli_pt=cli_pt, svr_ip=svr_ip, \
+                svr_pt=svr_pt, bytes_to_svr=bytes_to_svr, bytes_to_cli=bytes_to_cli, \
+                ts_first_pkt=ts_first_pkt, ts_last_pkt=ts_last_pkt, ssl_cli_hello=ssl_cli_hello, \
+                ssl_cli_ccs=ssl_cli_ccs, ssl_svr_hello=ssl_svr_hello, ssl_version=ssl_version, \
+                ssl_cipher=ssl_cipher, ssl_svr_ccs=ssl_svr_ccs)
+
+            print("\nstatus:\n", file = fd)
+            for k,v in stream_status.__dict__.iteritems():
+                print(k, v, file = fd)
+
+            stream_statuses.append(stream_status)
+
+        fd.close()
+
+        return stream_statuses
 
     def persist_streams(self, stream_statuses):
         conn = self._get_conn_to_ptp_db()
@@ -41,11 +55,11 @@ class Stream_DB:
                 ss = stream_status.ssl_status
                 #print ts.cli_ip, ts.cli_pt, ts.svr_ip, ts.svr_pt, ts.bytes_to_svr, ts.bytes_to_cli, ts.ts_first_pkt, ts.ts_last_pkt
 
-                sql = ' '.join("INSERT INTO", _sql_streams_table_columns, _sql_stream_table_values) % \
+                sql = ' '.join(["INSERT INTO", self._sql_streams_table_columns, self._sql_stream_table_values]) % \
                     (ts.cli_ip, ts.cli_pt, ts.svr_ip, ts.svr_pt, int(ts.bytes_to_svr), int(ts.bytes_to_cli),
                      self._epoch_to_datetime(ts.ts_first_pkt), self._epoch_to_datetime(ts.ts_last_pkt),
-                     ss.client_hello, ss.client_change_cipher_spec, ss.server_hello, ss.version, 
-                     ss.cipher, ss.server_change_cipher_spec)
+                     ss.ssl_cli_hello, ss.ssl_cli_ccs, ss.ssl_svr_hello, ss.ssl_version, 
+                     ss.ssl_cipher, ss.ssl_svr_ccs)
  
                 cursor.execute(sql)
             conn.commit()
@@ -91,7 +105,7 @@ class Stream_DB:
         conn = self._get_conn_to_ptp_db()
 	cursor = conn.cursor()
         try:
-            sql = ' '.join("INSERT INTO", _sql_streams_table_columns, _sql_stream_table_values) % \
+            sql = ' '.join("INSERT INTO", self._sql_streams_table_columns, self._sql_stream_table_values) % \
                 (ts.cli_ip, ts.cli_pt, ts.svr_ip, ts.svr_pt, int(ts.bytes_to_svr), int(ts.bytes_to_cli),
                  self._epoch_to_datetime(ts.ts_first_pkt), self._epoch_to_datetime(ts.ts_last_pkt),
                  int(ss.client_hello), int(ss.client_change_cipher_spec), int(ss.server_hello), str(ss.version), 
@@ -144,27 +158,15 @@ class Stream_DB:
             streams.append(stream_status)
         return streams
     
-    def select_all_streams(self):
-        streams = []
-        rows = self._select_all_stream_rows()
-        for row in rows:
-            id, cli_ip, cli_pt, svr_ip, svr_pt, bytes_to_svr, bytes_to_cli, \
-                ts_first_pkt, ts_last_pkt = row
-            tcp_status = TCP_Status(cli_ip=cli_ip, cli_pt=cli_pt, svr_ip=svr_ip,
-                svr_pt=svr_pt, bytes_to_svr=bytes_to_svr, bytes_to_cli=bytes_to_cli,
-                ts_first_pkt=ts_first_pkt, ts_last_pkt=ts_last_pkt)
-            ssl_status = SSL_Status()
-            stream_status = Stream_Status(id=id, tcp_status=tcp_status, \
-                    ssl_status=ssl_status).get_flattened()
-            streams.append(stream_status)
-        return streams
-
     def _select_all_stream_rows(self):
         conn = self._get_conn_to_ptp_db()
 	cursor = conn.cursor()
-	sql =  """select id, inet6_ntoa(cli_ip), cli_pt, inet6_ntoa(svr_ip), svr_pt,
+
+	sql =  """SELECT id, inet6_ntoa(cli_ip), cli_pt, inet6_ntoa(svr_ip), svr_pt,
                     bytes_to_svr, bytes_to_cli, ts_first_pkt,
-                    ts_last_pkt from streams;"""
+                    ts_last_pkt, ssl_cli_hello, ssl_cli_ccs, ssl_svr_hello, ssl_version,
+                    ssl_cipher, ssl_svr_ccs FROM streams;"""
+
 	cursor.execute(sql)
 	rows = cursor.fetchall()
 	cursor.close()
@@ -173,10 +175,10 @@ class Stream_DB:
 
     def select_stream_by_quad_tuple(self, quad_tuple):
         stream_status = None
-        print "quad_tuple:", quad_tuple
+        print("quad_tuple:", quad_tuple)
         #self.log("select_stream_by_quad_tuple: quad_tuple: " % str(quad_tuple))
         row = self._select_stream_row_by_quad_tuple(quad_tuple)
-        print "row:", row
+        print("row:", row)
         #self.log("select_stream_by_quad_tuple: row: " % str(row))
 
         if row:
