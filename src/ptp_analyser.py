@@ -2,7 +2,6 @@ from ptp_sniffer import Sniffer
 from ptp_session_reassembler import Session_Reassembler
 from ptp_session_pair import Session_Pair
 from ptp_stream_db import Stream_DB
-from ptp_stream_table import Stream_Table
 from ptp_constants import Constants 
 
 
@@ -25,10 +24,10 @@ class Analyser:
 	db = self._stream_db
         db.clear_streams()
         db.persist_streams(stream_statuses)
-        print "yoda"
         stream_statuses = db.select_all_streams()
         #print "stream_statuses:", stream_statuses
-        return Stream_Table(stream_statuses) 
+        #return Stream_Table(stream_statuses) 
+        return stream_statuses
 
     def get_sniffer(self):
         return self._sniffer

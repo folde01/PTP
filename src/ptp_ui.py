@@ -1,5 +1,6 @@
 from flask import Flask, render_template, url_for
 from ptp_analyser import Analyser
+from ptp_stream_table import Stream_Table
 
 app = Flask(__name__)
 analyser = Analyser()
@@ -25,7 +26,9 @@ def results():
     global sniffer
     sniffer.stop()
     log("stop_capture(): traffic capture stopped")
-    results_table = analyser.results()
+    #results_table = analyser.results()
+    results = analyser.results()
+    results_table = Stream_Table(results)
     results_table.border = True
     #print "UI results:", repr(results)
     log("generate_analysis(): analysed")
