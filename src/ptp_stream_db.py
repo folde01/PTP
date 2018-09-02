@@ -7,7 +7,7 @@ import sys
 from ptp_logger import Logger
 
 
-class Stream_DB:
+class Stream_DB(object):
 
     def __init__(self):
         self._sql_streams_table_columns = \

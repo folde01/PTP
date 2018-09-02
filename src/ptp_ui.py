@@ -13,8 +13,8 @@ def index():
     '''Web page accessible via http://localhost/index. Has 'start capture' button.'''
     return render_template('index.html')
 
-@app.route('/capture-started')
-def capture_started():
+@app.route('/capture')
+def capture():
     '''Web page accessible via http://localhost/capture-started. Has 'stop capture and see results' button.'''
     #global sniffer
     #sniffer.start()
@@ -56,7 +56,9 @@ def sub_results(cli_pt):
     global _results
     results = _results 
     subresults = None
-    for result in results
+
+    for result in results:
+        pass
 
     results_table = Stream_Table_Small(results)
     results_table.border = True

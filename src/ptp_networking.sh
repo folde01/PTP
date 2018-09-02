@@ -4,11 +4,12 @@
 
 # NOTE: if restarting network manager on Ubuntu, then may need to kill/start nm-applet to get wifi/networking icon back.
 
-# If running on Ubuntu 16.04 VM, and physical TD connecting via PPTP over wifi:
+# If running on Ubuntu 16.04 phys, and physical TD connecting via PPTP over wifi:
 
-#sudo iptables -t nat -A POSTROUTING -o enp0s3 -j MASQUERADE && iptables-save
+
+#sudo iptables -t nat -F
+#sudo iptables -t nat -A POSTROUTING -o wlp3s0 -j MASQUERADE && iptables-save
 #sudo service pptpd restart
-
 
 # If we need an emulator, and running on Ubuntu 16.04 physical, with emulator TD running in QEMU, connecting via tap interface.
 # credit to https://www.cypherpunk.at/2017/08/monitoring-android-emulator-network-traffic/
@@ -16,13 +17,14 @@
 # TODO: detect DNS server automatically 
 #NAT_GATEWAY=192.168.1.1 # home router
 #NAT_GATEWAY=10.62.23.254 # uni - this is incorrect
-NAT_GATEWAY=192.168.43.1 # hotspot
+#NAT_GATEWAY=192.168.43.1 # hotspot
 #=======
 # TODO: use e.g. pyroute2
 
-#DNS_SERVER=192.168.1.1 # home router is DNS server - works
+DNS_SERVER=192.168.1.1 # home router is DNS server - works
+#DNS_SERVER=8.8.8.8 # google dns - broken
 #DNS_SERVER=10.62.23.254 # uni - broken, because I didn't realize at the time this should actually be uni DNS server.
-DNS_SERVER=192.168.43.1 # hotspot - works
+#DNS_SERVER=192.168.43.1 # hotspot - works
 #>>>>>>> 01b5597e5350c5780d70136db1f2549a406e2a46
 
 sudo ip link delete tap0 > /dev/null 2>&1
@@ -59,3 +61,5 @@ sudo iptables -t nat -A POSTROUTING -s 10.0.2.0/24 -o wlp3s0 -j MASQUERADE
 # somewhere which can actually answer those queries.
 # TODO: get this dynamically by looking up the host's DNS server or use a public DNS server, 
 sudo iptables -t nat -A PREROUTING -d 10.0.2.3 -j DNAT --to-destination $DNS_SERVER
+# not gonna work: see https://www.digitalocean.com/community/tutorials/a-deep-dive-into-iptables-and-netfilter-architecture
+#sudo iptables -t nat -A POSTROUTING -d 10.0.2.3 -j DNAT --to-destination $DNS_SERVER

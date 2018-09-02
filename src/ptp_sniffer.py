@@ -1,7 +1,7 @@
 from ptp_logger import Logger
 import logging
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
-from scapy.all import Ether, IP, TCP, sendp
+from scapy.all import Ether, IP, TCP, sendp, rdpcap, Raw, PacketList
 import threading
 import unittest
 import os
@@ -9,16 +9,15 @@ import time
 import pcapy
 from socket import ntohs
 from struct import unpack
-from ptp_tcp_client import Packet_Sender 
+from ptp_packet_sender import Packet_Sender 
 from ptp_network import Network 
 
-class Sniffer:
-
-    _packets = None
-    _sniffer_thread = None
-    _logger = Logger(logfile="ptp_sniffer.log")
+class Sniffer(object):
 
     def __init__(self, pcap_filename='sniffed.pcap'):
+        self._packets = None
+        self._sniffer_thread = None
+        self._logger = Logger(logfile="ptp_sniffer.log")
         self._pcap_filename = pcap_filename 
         self._net = Network()
         self._host_ip = self._net.get_host_ip()
@@ -31,10 +30,10 @@ class Sniffer:
 
     def start(self):
         """Start sniffer."""
-        Sniffer._sniffer_thread = threading.Thread(target=self._run_sniffer_thread)
-        Sniffer._sniffer_thread.daemon = True
+        self._sniffer_thread = threading.Thread(target=self._run_sniffer_thread)
+        self._sniffer_thread.daemon = True
         self.log("Sniffer initialised")
-        Sniffer._sniffer_thread.start()
+        self._sniffer_thread.start()
         #return self.is_running()
 
     def _run_sniffer_thread(self):
@@ -52,7 +51,7 @@ class Sniffer:
         host_ip = self._host_ip
 	bpf_filter = "( host %s and tcp and ( not host %s ) ) or ether dst %s" % (local_ip, host_ip, self._stop_eth_addr)
         self.log("bpf_filter=%s" % bpf_filter)
-	cap.setfilter(bpf_filter)
+	#cap.setfilter(bpf_filter)
 	dumper = cap.dump_open(self._pcap_filename)
 
 	while(True):
@@ -102,7 +101,9 @@ class Sniffer:
 	sendp(kill_packet)
 
     def is_running(self):
-        return Sniffer._sniffer_thread.isAlive()
+        if self._sniffer_thread is None:
+            return False
+        return self._sniffer_thread.isAlive()
         
 
     def pcap_file_exists(self):
@@ -114,16 +115,17 @@ class Sniffer:
 class TestSniffer(unittest.TestCase):
 
     def setUp(self):
-        pcap_filename = 'sniffed_TEST.pcap'
-        if os.path.isfile(pcap_filename):
-            os.remove(pcap_filename)
-        self.sniffer = Sniffer(pcap_filename=pcap_filename)
+        self.pcap_filename = 'sniffed_TEST.pcap'
+        if os.path.isfile(self.pcap_filename):
+            os.remove(self.pcap_filename)
+        self.sniffer = Sniffer(pcap_filename=self.pcap_filename)
+        self.test_packet = Ether(dst='01:02:03:04:05:06')/IP(dst='10.20.30.40')/TCP(sport=12345,dport=54321,seq=12345678)/Raw("TCP payload of test packet")
+
 
     def tearDown(self):
         self.sniffer.stop()
-        pcap_filename = 'sniffed_TEST.pcap'
-        if os.path.isfile(pcap_filename):
-            os.remove(pcap_filename)
+        if os.path.isfile(self.pcap_filename):
+            os.remove(self.pcap_filename)
         
     def test_sniffer_is_not_running_before_starting_it(self):
         self.assertFalse(self.sniffer.is_running())
@@ -144,6 +146,19 @@ class TestSniffer(unittest.TestCase):
 
     def test_no_pcap_file_if_sniffer_has_not_run(self):
         self.assertFalse(self.sniffer.pcap_file_exists())
+
+    def test_sniffer_detects_correct_number_of_packets(self):
+        num_packets_sent = 100
+        self.sniffer.start()
+        sendp(self.test_packet, count=num_packets_sent, iface=self.sniffer._nic_name)
+        self.sniffer.stop()
+        packets = rdpcap(self.pcap_filename)
+        num_packets_sniffed = len(packets)
+        debug_msg = 'num_packets_sniffed: {}'.format(num_packets_sniffed)
+        self.assertEqual(num_packets_sniffed, num_packets_sent, msg=debug_msg)
+
+        
+
 
 
 '''

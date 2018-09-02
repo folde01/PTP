@@ -18,11 +18,11 @@ class Session_Pair(object):
 	self._const = Constants() 
 
     def get_stream_status(self):
-        """
+        '''
         Returns: 
             A Stream object containing the full analysis of the session pair.
             This has all the info we need for the stream database.
-        """
+        '''
 
         stream_status = Stream_Status(tcp_status=self._get_tcp_status(),
                                       ssl_status=self._get_ssl_status())
@@ -31,10 +31,10 @@ class Session_Pair(object):
 
 
     def _get_tcp_status(self):
-        """
+        '''
         Returns: 
             A TCP_Status object containing the TCP analysis of the session pair.
-        """
+        '''
 
         if self._tcp_status is not None:
             return self._tcp_status
@@ -42,6 +42,12 @@ class Session_Pair(object):
         cli_to_svr_session = self._cli_to_svr 
         svr_to_cli_session = self._svr_to_cli 
 
+        '''
+        A session in a session pair may not contain any packets. This would be the case if a session pair
+        contained only traffic going in a single direction. In this case, packet 0 of a session doesn't exist,
+        and an exception arises, giving us the chance to correctly assign Scapy src and dest values to 
+        cli_ip and and svr_ip.
+        '''
         try:
             cli_ip = cli_to_svr_session[0]['IP'].src
             cli_pt = cli_to_svr_session[0]['TCP'].sport
@@ -73,13 +79,13 @@ class Session_Pair(object):
  
 
     def _get_session_payload_size(self, session):
-        """
+        '''
         Args:
             session (PacketList): Scapy packet list representing one direction of
             TCP connection.
         Returns:
             int: size of total TCP payload for all packets in bytes
-        """
+        '''
         if session is None:
             return 0
         size = 0
@@ -89,8 +95,8 @@ class Session_Pair(object):
 
 
     def _get_start_and_end_ts(self):
-        """returns two-tuple containing lowest and highest timestamps in Epoch seconds, in microseconds.
-        returns None if session is None"""
+        '''returns two-tuple containing lowest and highest timestamps in Epoch seconds, in microseconds.
+        returns None if session is None'''
 
 	cli_to_svr_session = self._cli_to_svr
 	svr_to_cli_session = self._svr_to_cli
@@ -117,11 +123,11 @@ class Session_Pair(object):
 
 
     def _get_ssl_status(self):
-        """Examine use (or otherwise) of SSL protocol.
+        '''Examine use (or otherwise) of SSL protocol.
 
         Returns:
             SSL_Status object containing details of SSL use.
-        """
+        '''
         self._ssl_handshake_client_analysis()
         self._ssl_handshake_server_analysis()
         #self._ssl_tunnel_analysis()
@@ -174,8 +180,8 @@ class Session_Pair(object):
             
         #print "pkt_seq_load:", pkt_seq_load
 
-        # The payload matches a regex if it has both client hello and change cipher
-        # suite messages (in that order, with any bytes in between).
+        # The payload matches a regex if it has both Client Hello (CH) and Change Cipher
+        # Suite (CCS) messages (in that order, with any bytes in between).
 	regex = re.compile(
 	    r'''
 	    ^
@@ -184,9 +190,9 @@ class Session_Pair(object):
             (
 
                 # RECORD layer:
-                16	            # 16: handshake sub-protocol		
+                16	        # 16: handshake sub-protocol		
                 030[0-3]        # 0300: SSL 3.0, 0301: TLS 1.0, 0302: TLS 1.1, 0303: TLS 1.2
-                [0-9a-f]{4}     # 2-byte message length
+                [0-9a-f]{4}     # 2-byte message length. A pair of hex digits represents a byte, hence '{4}'.
 
                 # HANDSHAKE layer:
                 01              # 01: client hello message
@@ -227,14 +233,16 @@ class Session_Pair(object):
 	pkt_seq_load = ''
 
         '''
-        The first two loaded packets is not enough as we must account for any TCP
-        segmentation or use of client authentication. Setting it too high means we 
-        waste time searching payloads unlikely to contain anything we need.
+        Note about setting first_n_packets: although it may work most of the time, a 
+        value of 2 (i.e. the first two payloaded packets) is too low as we must account
+        for any TCP segmentation or use of client authentication. However, setting first_n_packets
+        too high means we waste time searching payloads unlikely to contain anything 
+        we need, and we increase the likelihood that the patterns we are looking for 
+        appear elsewhere but in a different context.
         '''
         first_n_packets = 8
 
         num_pkts_with_payload = [p.haslayer(Raw) for p in pkt_seq].count(True)
-
 
         # concatenate payloads of first packets
 	if num_pkts_with_payload < first_n_packets:
@@ -280,12 +288,13 @@ class Session_Pair(object):
 
 	match = regex.match(pkt_seq_load)
 
+        # Don't bother with subsequent search if no match.
         if not match:
             return
 
         groups = match.groups()
         
-        # Set whether server hello seen
+        # Set whether Server Hello seen
         handshake_record_group = 0
         server_hello_group = 1
         server_hello_seen = bool(groups[handshake_record_group]) and \
@@ -355,7 +364,7 @@ class Session_Pair(object):
             groups = match.groups()
 
             cipher_suite_group = 4
-            cipher = groups[cipher_suite_group] # TODO: IndexError if not
+            cipher = groups[cipher_suite_group] # TODO: deal with IndexError if not
             self._ssl_status.ssl_cipher = cipher
 
             change_cipher_spec_group = 5
@@ -369,14 +378,14 @@ class Session_Pair(object):
 
 
     def _ssl_handshake_analysis_old(self):
-        """Updates SSL_Status object for this packet based on first packets exchanged.
+        '''Updates SSL_Status object for this packet based on first packets exchanged.
         If TCP handshake is seen then examine the subsequent exchange of messages (sometimes called
         the 'four flights') required to establish the encrypted tunnel, 
         namely Client Hello, Server Hello, plus a Change Cipher Suite from client and server.
         Updates SSL status object with SSL version and cipher
         used. Assumes TCP Fast Open is not used, so Client Hello must be sent 
         in client's third packet.
-        """
+        '''
         ssl_status = self._ssl_status
  
         if not self._tcp_handshake_is_seen():
@@ -416,9 +425,9 @@ class Session_Pair(object):
         return len(pkt[TCP].payload) > 0
 
     def _tcp_handshake_is_seen(self):
-        """prereqs: deduplicated, ordered session pair.
-        returns two of first packet in cli_to_svr with a TCP payload. 
-        """
+        '''prereqs: deduplicated, ordered session pair.
+        returns True if we see SYN->SYNACK->ACK sequence in first 3 packets
+        '''
         session_pair = self
         cli_to_svr = self._cli_to_svr
         svr_to_cli = self._svr_to_cli 

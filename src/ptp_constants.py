@@ -1,4 +1,4 @@
-class Constants:
+class Constants(object):
 
     def __init__(self):
         self.DEFAULT_PCAP_FILENAME = 'sniffed.pcap'

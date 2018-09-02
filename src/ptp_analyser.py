@@ -5,7 +5,7 @@ from ptp_stream_db import Stream_DB
 from ptp_constants import Constants 
 
 
-class Analyser:
+class Analyser(object):
 
     def __init__(self, existing_pcap_filename=None):
         self._existing_pcap_filename = existing_pcap_filename

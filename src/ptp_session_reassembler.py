@@ -6,7 +6,7 @@ from ptp_session_pair import Session_Pair
 import unittest
 
 
-class Session_Reassembler:
+class Session_Reassembler(object):
 
     def __init__(self, pcap_filename=None):
         self._pcap_filename = pcap_filename
