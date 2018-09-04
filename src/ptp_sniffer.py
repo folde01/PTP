@@ -1,7 +1,7 @@
 from ptp_logger import Logger
 import logging
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
-from scapy.all import Ether, IP, TCP, sendp, rdpcap, Raw, PacketList
+from scapy.all import Ether, IP, TCP, sendp, rdpcap, Raw, PacketList, PPP
 import threading
 import unittest
 import os
@@ -23,7 +23,8 @@ class Sniffer(object):
         self._host_ip = self._net.get_host_ip()
         self._stop_eth_addr = self._net.get_stop_eth() 
         self._nic_name = self._net.get_nic_name()
-        self._cli_ip = self._net.get_cli_ip()
+        self._sniff_iface_name = self._net.get_sniff_iface_name()
+        #self._cli_ip = self._net.get_cli_ip()
 
     def get_pcap_filename(self):
         return self._pcap_filename
@@ -37,10 +38,11 @@ class Sniffer(object):
         #return self.is_running()
 
     def _run_sniffer_thread(self):
-        nic_name = self._nic_name
-        local_ip = self._cli_ip
-        self.log("nic_name=%s; local_ip=%s" % (nic_name, local_ip))
+        nic_name = self._sniff_iface_name
+        #local_ip = self._cli_ip
+        #self.log("nic_name=%s; local_ip=%s" % (nic_name, local_ip))
         #nic_name = "ppp0"
+        #nic_name = "wlp3s0"
         max_packet_size = 65536
         promiscuous_mode = 1
         # may need to set timeout_ms to something non-zero, 
@@ -49,8 +51,8 @@ class Sniffer(object):
         timeout_ms = 0 
         cap = pcapy.open_live(nic_name, max_packet_size, promiscuous_mode, timeout_ms)
         host_ip = self._host_ip
-	bpf_filter = "( host %s and tcp and ( not host %s ) ) or ether dst %s" % (local_ip, host_ip, self._stop_eth_addr)
-        self.log("bpf_filter=%s" % bpf_filter)
+	#bpf_filter = "( host %s and tcp and ( not host %s ) ) or ether dst %s" % (local_ip, host_ip, self._stop_eth_addr)
+        #self.log("bpf_filter=%s" % bpf_filter)
 	#cap.setfilter(bpf_filter)
 	dumper = cap.dump_open(self._pcap_filename)
 
@@ -69,14 +71,28 @@ class Sniffer(object):
 
     '''credit: binary tides'''
     def _is_stop_packet(self, packet_body, stop_eth_addr):
-	eth_header_length = 14
-	eth_header = packet_body[:eth_header_length]
+        #scapy_pkt = PPP(packet_body)
+        #print "scapy_pkt:", scapy_pkt.show()
+        eth_header_start_byte = 0
+        eth_header_length = 14
+
+        '''
+        we need to move forward 2 bytes if using PPP. See
+        https://www.wireshark.org/lists/ethereal-users/200412/msg00314.html 
+        '''
+        if self._sniff_iface_name == 'ppp0':
+            print "using ppp0"
+	    eth_header_start_byte = 2 
+
+        eth_header_end_byte = eth_header_start_byte + eth_header_length
+	eth_header = packet_body[eth_header_start_byte:eth_header_end_byte]
 	eth = unpack('!6s6sH' , eth_header)
 	eth_protocol = ntohs(eth[2])
 	eth_header_bytes = packet_body[0:6]
 	eth_addr_str = self._eth_addr(eth_header_bytes)
+        print "eth_addr_str:", eth_addr_str
 	if eth_addr_str == stop_eth_addr:
-	    # print 'Stop packet received'
+	    print 'Stop packet received'
 	    return True
 	return False
 
@@ -99,6 +115,7 @@ class Sniffer(object):
 	#kill_packet = Ether(dst='00:00:00:03:02:01')/IP(dst='10.11.12.13')/TCP()
 	kill_packet = Ether(dst=self._stop_eth_addr)/IP(dst=host_ip)/TCP()
 	sendp(kill_packet)
+	#sendp(kill_packet, iface=self._sniff_iface_name)
 
     def is_running(self):
         if self._sniffer_thread is None:
