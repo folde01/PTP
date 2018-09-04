@@ -253,7 +253,7 @@ class Session_Pair(object):
                 if p.haslayer(Raw):
                     pkt_seq_load += self._get_load(p) 
             
-        print "pkt_seq_load:", pkt_seq_load
+        #print "pkt_seq_load:", pkt_seq_load
 
         '''
         The payload if it has both server hello and change cipher

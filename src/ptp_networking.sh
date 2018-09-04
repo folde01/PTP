@@ -86,7 +86,8 @@ function configure_networking_for_virtual_device()
 function configure_networking_for_physical_device()
 {
 	echo "Configuring networking for physical Target Device."
-	SNIFF_IFACE="ppp0"
+	#SNIFF_IFACE="ppp0"
+	SNIFF_IFACE=$GATEWAY_IFACE
 	sudo iptables -t nat -F
 	sudo iptables -t nat -A POSTROUTING -o $GATEWAY_IFACE -j MASQUERADE && iptables-save
 	sudo service pptpd restart

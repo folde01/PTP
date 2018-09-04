@@ -22,9 +22,9 @@ class Sniffer(object):
         self._net = Network()
         self._host_ip = self._net.get_host_ip()
         self._stop_eth_addr = self._net.get_stop_eth() 
-        self._nic_name = self._net.get_nic_name()
+        #self._nic_name = self._net.get_nic_name()
         self._sniff_iface_name = self._net.get_sniff_iface_name()
-        #self._cli_ip = self._net.get_cli_ip()
+        self._cli_ip = self._net.get_cli_ip()
 
     def get_pcap_filename(self):
         return self._pcap_filename
@@ -39,7 +39,10 @@ class Sniffer(object):
 
     def _run_sniffer_thread(self):
         nic_name = self._sniff_iface_name
+        print 'sniff nic_name:', nic_name
         #local_ip = self._cli_ip
+        cli_ip = self._cli_ip
+        print 'sniff cli_ip:', cli_ip
         #self.log("nic_name=%s; local_ip=%s" % (nic_name, local_ip))
         #nic_name = "ppp0"
         #nic_name = "wlp3s0"
@@ -50,10 +53,12 @@ class Sniffer(object):
         # can't complete until packets are actually captured
         timeout_ms = 0 
         cap = pcapy.open_live(nic_name, max_packet_size, promiscuous_mode, timeout_ms)
-        host_ip = self._host_ip
+        #host_ip = self._host_ip
 	#bpf_filter = "( host %s and tcp and ( not host %s ) ) or ether dst %s" % (local_ip, host_ip, self._stop_eth_addr)
+	bpf_filter = "tcp"
+	#bpf_filter = "tcp and host %s" % (cli_ip) # why isn't this working?
         #self.log("bpf_filter=%s" % bpf_filter)
-	#cap.setfilter(bpf_filter)
+	cap.setfilter(bpf_filter)
 	dumper = cap.dump_open(self._pcap_filename)
 
 	while(True):
@@ -90,12 +95,17 @@ class Sniffer(object):
 	eth_protocol = ntohs(eth[2])
 	eth_header_bytes = packet_body[0:6]
 	eth_addr_str = self._eth_addr(eth_header_bytes)
-        print "eth_addr_str:", eth_addr_str
+        #print "eth_addr_str:", eth_addr_str
 	if eth_addr_str == stop_eth_addr:
 	    print 'Stop packet received'
 	    return True
 	return False
 
+
+    def _is_stop_packet2(self, packet_body, stop_eth_addr):
+        scapy_pkt = Ether(packet_body)
+        print "scapy_pkt:", scapy_pkt.show()
+        
 
     def stop(self):
         """Stop sniffer."""
@@ -167,7 +177,7 @@ class TestSniffer(unittest.TestCase):
     def test_sniffer_detects_correct_number_of_packets(self):
         num_packets_sent = 100
         self.sniffer.start()
-        sendp(self.test_packet, count=num_packets_sent, iface=self.sniffer._nic_name)
+        sendp(self.test_packet, count=num_packets_sent, iface=self.sniffer._sniff_iface_name)
         self.sniffer.stop()
         packets = rdpcap(self.pcap_filename)
         num_packets_sniffed = len(packets)

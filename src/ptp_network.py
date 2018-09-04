@@ -1,15 +1,15 @@
 import psutil
+import ptp_network_conf
+import netifaces
 
 class Network(object):
 
     # when using emulator, nic_name=tap0, cli_ip=10.0.2.15
-    #def __init__(self, nic_name='tap0', cli_ip='10.0.2.15'):
-    #def __init__(self, nic_name='lo', cli_ip='10.0.2.15'):
-    def __init__(self, sniff_iface_name='ppp0', nic_name='ppp0'):
-        self._nic_name = nic_name
-        self._sniff_iface_name = sniff_iface_name 
-        #self._gateway_iface_name = gateway_iface_name
-        #self._cli_ip = cli_ip
+    def __init__(self):
+        self._sniff_iface_name = ptp_network_conf.sniff_iface 
+        self._cli_ip = None 
+        self._nic_name = self._sniff_iface_name
+        self._gateway_iface_name = ptp_network_conf.gateway_iface
         self._sniffer_stop_eth = '00:00:00:03:02:01'
         self._sniffer_stop_ip = '10.11.12.13' 
 
@@ -23,6 +23,12 @@ class Network(object):
         return self._gateway_iface_name
 
     def get_cli_ip(self):
+        if self._cli_ip is None:
+            if self._sniff_iface_name == 'tap0':
+                self._cli_ip = '10.0.2.15'
+            else:
+                self._cli_ip = \
+                        netifaces.ifaddresses(self._sniff_iface_name)[netifaces.AF_INET][0]['addr']
         return self._cli_ip
 
     def get_host_ip(self):

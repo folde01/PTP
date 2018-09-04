@@ -56,6 +56,7 @@ mkdir -p $PTP_PREREQS
 # make sure we're in virtualenv!
 
 python -m pip install flask flask_table scapy psutil
+python -m pip install netifaces
 
 sudo apt-get install -y libmysqlclient-dev python-dev
 python -m pip install mysqlclient
