@@ -11,10 +11,10 @@ class Stream_DB(object):
 
     def __init__(self):
         self._sql_streams_table_columns = \
-            """streams (cli_ip, cli_pt, svr_ip, svr_pt, bytes_to_svr, bytes_to_cli, ts_first_pkt, ts_last_pkt, ssl_cli_hello, ssl_cli_ccs, ssl_svr_hello, ssl_version, ssl_cipher, ssl_svr_ccs)"""
+            """streams (cli_ip, cli_pt, svr_ip, svr_pt, bytes_to_svr, bytes_to_cli, ts_first_pkt, ts_last_pkt, ssl_cli_hello, ssl_cli_ccs, ssl_svr_hello, ssl_version, ssl_cipher, ssl_svr_ccs, is_encrypted)"""
 
         self._sql_stream_table_values = \
-            """VALUES (inet6_aton(\'%s\'), %d, inet6_aton(\'%s\'), %d, %d, %d, '%s', '%s', %d, %d, %d, '%s', '%s', %d)"""
+            """VALUES (inet6_aton(\'%s\'), %d, inet6_aton(\'%s\'), %d, %d, %d, '%s', '%s', %d, %d, %d, '%s', '%s', %d, '%s')"""
 
     def select_all_streams(self):
         stream_statuses = []
@@ -28,13 +28,13 @@ class Stream_DB(object):
 
             id, cli_ip, cli_pt, svr_ip, svr_pt, bytes_to_svr, bytes_to_cli, \
                 ts_first_pkt, ts_last_pkt, ssl_cli_hello, ssl_cli_ccs, \
-                ssl_svr_hello, ssl_version, ssl_cipher, ssl_svr_ccs = row
+                ssl_svr_hello, ssl_version, ssl_cipher, ssl_svr_ccs, is_encrypted = row
 
             stream_status = Stream_Flattened(cli_ip=cli_ip, cli_pt=cli_pt, svr_ip=svr_ip, \
                 svr_pt=svr_pt, bytes_to_svr=bytes_to_svr, bytes_to_cli=bytes_to_cli, \
                 ts_first_pkt=ts_first_pkt, ts_last_pkt=ts_last_pkt, ssl_cli_hello=ssl_cli_hello, \
                 ssl_cli_ccs=ssl_cli_ccs, ssl_svr_hello=ssl_svr_hello, ssl_version=ssl_version, \
-                ssl_cipher=ssl_cipher, ssl_svr_ccs=ssl_svr_ccs)
+                ssl_cipher=ssl_cipher, ssl_svr_ccs=ssl_svr_ccs, is_encrypted=is_encrypted)
 
             print("\nstatus:\n", file = fd)
             for k,v in stream_status.__dict__.iteritems():
@@ -59,7 +59,7 @@ class Stream_DB(object):
                     (ts.cli_ip, ts.cli_pt, ts.svr_ip, ts.svr_pt, int(ts.bytes_to_svr), int(ts.bytes_to_cli),
                      self._epoch_to_datetime(ts.ts_first_pkt), self._epoch_to_datetime(ts.ts_last_pkt),
                      ss.ssl_cli_hello, ss.ssl_cli_ccs, ss.ssl_svr_hello, ss.ssl_version, 
-                     ss.ssl_cipher, ss.ssl_svr_ccs)
+                     ss.ssl_cipher, ss.ssl_svr_ccs, ss.is_encrypted)
  
                 cursor.execute(sql)
             conn.commit()
@@ -165,7 +165,7 @@ class Stream_DB(object):
 	sql =  """SELECT id, inet6_ntoa(cli_ip), cli_pt, inet6_ntoa(svr_ip), svr_pt,
                     bytes_to_svr, bytes_to_cli, ts_first_pkt,
                     ts_last_pkt, ssl_cli_hello, ssl_cli_ccs, ssl_svr_hello, ssl_version,
-                    ssl_cipher, ssl_svr_ccs FROM streams;"""
+                    ssl_cipher, ssl_svr_ccs, is_encrypted FROM streams;"""
 
 	cursor.execute(sql)
 	rows = cursor.fetchall()
@@ -299,7 +299,8 @@ class Stream_DB(object):
             ssl_svr_hello bool,
             ssl_version varbinary(16),
             ssl_cipher varbinary(128),
-            ssl_svr_ccs bool )"""
+            ssl_svr_ccs bool,
+            is_encrypted varbinary(16) )"""
 
         cursor.execute(sql)
 	cursor.close()

@@ -20,7 +20,8 @@ class Stream_Table(Table):
     ssl_svr_hello = Col('SSL Server Hello seen')
     ssl_svr_ccs = Col('SSL server Change Cipher Suite seen')
     ssl_version = Col('SSL version')
-    ssl_cipher = Col('Code for SSL cipher suite')
+    ssl_cipher = Col('SSL cipher suite')
+    is_encrypted = Col('Is connection encrypted?')
 
 class Stream_Table_Test(Table):
     cli_ip = Col('Client IP address')
