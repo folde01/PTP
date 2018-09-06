@@ -7,22 +7,25 @@
 
 
 from ptp_session_reassembler import Session_Reassembler 
-from ptp_constants import Constants
+from ptp_constants import Constants, Is_Encrypted_Enum
 import unittest
 
 class Test_Session_Pair(unittest.TestCase):
         
     def setUp(self):
         self.pcap = 'test-pcap-files/ssl-test.pcap'
-        src_ip, src_pt, dest_ip, dest_pt = ('10.0.2.15', '55083', '104.25.157.13', '443')
-        self.connection_with_ssl_handshake = (src_ip, src_pt, dest_ip, dest_pt) 
-        src_ip, src_pt, dest_ip, dest_pt = ('10.0.2.15', '47769', '52.95.132.37', '443')
-        self.connection_without_ssl_handshake = (src_ip, src_pt, dest_ip, dest_pt) 
+        cli_ip, cli_pt, svr_ip, svr_pt = ('10.0.2.15', '55083', '104.25.157.13', '443')
+        self.connection_with_ssl_handshake = (cli_ip, cli_pt, svr_ip, svr_pt) 
+        cli_ip, cli_pt, svr_ip, svr_pt = ('10.0.2.15', '47769', '52.95.132.37', '443')
+        self.connection_without_ssl_handshake = (cli_ip, cli_pt, svr_ip, svr_pt) 
+        cli_ip, cli_pt, svr_ip, svr_pt = ('10.0.2.15', '33074', '216.58.206.33', '80')
+        self.connection_using_http = (cli_ip, cli_pt, svr_ip, svr_pt) 
 
     def tearDown(self):
         pass
 
     def test_ssl_cli_hello_is_seen(self):
+        print '------------------- test_ssl_cli_hello_is_seen -------------------'
         reassembler = Session_Reassembler(self.pcap)
         pairs = reassembler.get_session_pairs() 
         pair_id = self.connection_with_ssl_handshake
@@ -33,6 +36,7 @@ class Test_Session_Pair(unittest.TestCase):
         self.assertTrue(cli_hello_is_seen)
 
     def test_ssl_cli_hello_is_not_seen(self):
+        print '------------------- test_ssl_cli_hello_is_seen -------------------'
         reassembler = Session_Reassembler(self.pcap)
         pairs = reassembler.get_session_pairs() 
         pair_id = self.connection_without_ssl_handshake
@@ -44,6 +48,7 @@ class Test_Session_Pair(unittest.TestCase):
 
 
     def test_ssl_cli_ccs_is_seen(self):
+        print '------------------- test_ssl_cli_hello_is_seen -------------------'
         reassembler = Session_Reassembler(self.pcap)
         pairs = reassembler.get_session_pairs() 
         pair_id = self.connection_with_ssl_handshake
@@ -54,6 +59,7 @@ class Test_Session_Pair(unittest.TestCase):
         self.assertTrue(cli_ccs_is_seen)
 
     def test_ssl_cli_ccs_is_not_seen(self):
+        print '------------------- test_ssl_cli_hello_is_seen -------------------'
         reassembler = Session_Reassembler(self.pcap)
         pairs = reassembler.get_session_pairs() 
         pair_id = self.connection_without_ssl_handshake
@@ -64,6 +70,7 @@ class Test_Session_Pair(unittest.TestCase):
         self.assertFalse(cli_ccs_is_seen)
 
     def test_ssl_svr_hello_is_seen(self):
+        print '------------------- test_ssl_svr_hello_is_seen -------------------'
         reassembler = Session_Reassembler(self.pcap)
         pairs = reassembler.get_session_pairs() 
         pair_id = self.connection_with_ssl_handshake
@@ -74,6 +81,7 @@ class Test_Session_Pair(unittest.TestCase):
         self.assertTrue(svr_hello_is_seen)
 
     def test_ssl_svr_hello_is_not_seen(self):
+        print '------------------- test_ssl_svr_hello_is_not_seen -------------------'
         reassembler = Session_Reassembler(self.pcap)
         pairs = reassembler.get_session_pairs() 
         pair_id = self.connection_without_ssl_handshake
@@ -84,6 +92,7 @@ class Test_Session_Pair(unittest.TestCase):
         self.assertFalse(svr_hello_is_seen)
     
     def test_ssl_svr_ccs_is_seen(self):
+        print '------------------- test_ssl_svr_ccs_is_seen -------------------'
         reassembler = Session_Reassembler(self.pcap)
         pairs = reassembler.get_session_pairs() 
         pair_id = self.connection_with_ssl_handshake
@@ -94,6 +103,7 @@ class Test_Session_Pair(unittest.TestCase):
         self.assertTrue(svr_ccs_is_seen)
 
     def test_ssl_svr_ccs_is_not_seen(self):
+        print '------------------- test_ssl_svr_ccs_is_not_seen -------------------'
         reassembler = Session_Reassembler(self.pcap)
         pairs = reassembler.get_session_pairs() 
         pair_id = self.connection_without_ssl_handshake
@@ -104,6 +114,7 @@ class Test_Session_Pair(unittest.TestCase):
         self.assertFalse(svr_ccs_is_seen)
 
     def test_ssl_cipher_is_correct(self):
+        print '------------------- test_ssl_cipher_is_correct -------------------'
         cipher_in_pcap = 'TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256' 
         reassembler = Session_Reassembler(self.pcap)
         pairs = reassembler.get_session_pairs() 
@@ -115,6 +126,7 @@ class Test_Session_Pair(unittest.TestCase):
         self.assertEquals(ssl_cipher, cipher_in_pcap)
 
     def test_ssl_version_is_correct(self):
+        print '------------------- test_ssl_version_is_correct -------------------'
         version_in_pcap = 'TLS 1.2'
         reassembler = Session_Reassembler(self.pcap)
         pairs = reassembler.get_session_pairs() 
@@ -126,10 +138,27 @@ class Test_Session_Pair(unittest.TestCase):
         self.assertEquals(ssl_version, version_in_pcap)
 
     def test_is_encrypted(self):
-        pass
+        print '------------------- test_is_encrypted -------------------'
+        reassembler = Session_Reassembler(self.pcap)
+        pairs = reassembler.get_session_pairs() 
+        pair_id = self.connection_with_ssl_handshake
+        pair = pairs[pair_id]
+        #ssl_status = pair._get_ssl_status()
+        stream_status = pair.get_stream_status()
+        is_encrypted = stream_status.ssl_status.is_encrypted
+        self.assertEquals(is_encrypted, Is_Encrypted_Enum.YES)
 
     def test_is_not_encrypted(self):
-        pass
+        print '------------------- test_is_not_encrypted -------------------'
+        reassembler = Session_Reassembler(self.pcap)
+        pairs = reassembler.get_session_pairs() 
+        pair_id = self.connection_using_http
+        pair = pairs[pair_id]
+        #ssl_status = pair._get_ssl_status()
+        stream_status = pair.get_stream_status()
+        is_encrypted = stream_status.ssl_status.is_encrypted
+        self.assertEquals(is_encrypted, Is_Encrypted_Enum.NO)
+
 
 '''
     def test_tcp_handshake_seen(self):

@@ -1,10 +1,11 @@
-from ptp_constants import Constants
+from ptp_constants import Constants, Is_Encrypted_Enum
 
 class Stream_Status(object):
     def __init__(self, **kwargs):
         self.id = kwargs.get('id', None)
         self.tcp_status = kwargs.get('tcp_status', None)
         self.ssl_status = kwargs.get('ssl_status', None)
+        self._const = Constants()
 
     def get_stream_tuple(self):
         pass
@@ -90,6 +91,7 @@ class SSL_Status(object):
         self.ssl_version = kwargs.get('ssl_version', "NO VERSION")
         self.ssl_cipher = kwargs.get('ssl_cipher', "NO CIPHER")
         self.ssl_svr_ccs = kwargs.get('ssl_svr_ccs', False)
+        self.is_encrypted = kwargs.get('is_encrypted', Is_Encrypted_Enum().UNASSESSED)
 
     def set_client_hello(self, client_hello_seen):
         self.ssl_cli_hello = client_hello_seen
@@ -102,8 +104,9 @@ class SSL_Status(object):
                 "ssl_version:", str(self.ssl_version), "\n", \
                 "ssl_cipher:", str(self.ssl_cipher), "\n", \
                 "ssl_svr_ccs:", str(self.ssl_svr_ccs), "\n" \
+                "is_encrypted:", str(self.is_encrypted), "\n" \
 
+'''
     def get_ssl_tuple(self):
         return (self.ssl_handshake_seen, self.ssl_version, self.ssl_cipher)
-
-
+'''

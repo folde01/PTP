@@ -1,7 +1,7 @@
 #from scapy.all import rdpcap, PacketList, TCP, Raw
 from scapy.all import *
 from ptp_network import Network
-from ptp_constants import Constants
+from ptp_constants import Constants, Is_Encrypted_Enum
 from ptp_connection_status import Stream_Status, TCP_Status, SSL_Status
 import unittest
 from ptp_tcp_payload import TCP_Payload
@@ -131,10 +131,31 @@ class Session_Pair(object):
         '''
         self._ssl_handshake_client_analysis()
         self._ssl_handshake_server_analysis()
-        self._ssl_is_encrypted()
+        self._is_encrypted()
         #self._ssl_tunnel_analysis()
         #self._tcp_close_analysis()
         return self._ssl_status 
+
+    def _is_encrypted(self):
+        ss = self._ssl_status
+        ts = self._tcp_status
+
+        ssl_handshake_reqs = [ ss.ssl_cli_hello, ss.ssl_cli_ccs, ss.ssl_svr_hello, ss.ssl_svr_ccs ] 
+        unencrypted_reqs = [ts.svr_pt == 80, not all(ssl_handshake_reqs) ] 
+        
+        result = None
+
+        enum = Is_Encrypted_Enum()
+
+        if all(ssl_handshake_reqs):
+            result = enum.YES 
+        elif all(unencrypted_reqs):
+            result = enum.NO 
+        else:
+            result = enum.UNKNOWN 
+
+        ss.is_encrypted = result 
+
 
 
     def _get_load(self, pkt):
@@ -461,6 +482,3 @@ class Session_Pair(object):
             return False
 
         return False
-
-    def _ssl_is_encrypted(self):
-        pass

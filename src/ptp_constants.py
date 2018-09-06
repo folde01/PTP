@@ -1,3 +1,9 @@
+class Is_Encrypted_Enum(object):
+    NO = 'No' 
+    YES = 'Yes'
+    UNKNOWN = 'Unknown'
+    UNASSESSED = 'Unassessed'
+
 class Constants(object):
 
     def __init__(self):
@@ -13,6 +19,7 @@ class Constants(object):
 	    '0302': 'TLS 1.1',
 	    '0303': 'TLS 1.2',
 	}
+
 
         self.ssl = {}
 

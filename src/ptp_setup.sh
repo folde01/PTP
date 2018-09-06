@@ -57,6 +57,7 @@ mkdir -p $PTP_PREREQS
 
 python -m pip install flask flask_table scapy psutil
 python -m pip install netifaces
+python -m pip install tribool
 
 sudo apt-get install -y libmysqlclient-dev python-dev
 python -m pip install mysqlclient
