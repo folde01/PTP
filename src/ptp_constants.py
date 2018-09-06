@@ -7,13 +7,22 @@ class Constants(object):
         self.KILL_PKT_IP = '10.11.12.13'
         self.TEST_PCAP_DIR = 'test-pcap-files'
 
+        self.ssl_version_by_code = { 
+	    '0300': 'SSL 3.0',
+	    '0301': 'TLS 1.0',
+	    '0302': 'TLS 1.1',
+	    '0303': 'TLS 1.2',
+	}
+
         self.ssl = {}
 
         self.ssl['versions'] = {}
+
         self.ssl['versions']['SSL_3_0'] =                       '0300'
         self.ssl['versions']['SSL_1_0'] =                       '0301'
         self.ssl['versions']['SSL_1_1'] =                       '0302'
         self.ssl['versions']['SSL_1_2'] =                       '0303'
+
 
         self.ssl['protocols'] = {}
         self.ssl['protocols']['CHANGE_CIPHER_SPEC'] =        '14'

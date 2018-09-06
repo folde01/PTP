@@ -6,6 +6,7 @@ from ptp_connection_status import Stream_Status, TCP_Status, SSL_Status
 import unittest
 from ptp_tcp_payload import TCP_Payload
 import re
+import ptp_ssl_ciphers
 
 class Session_Pair(object):
 
@@ -317,7 +318,8 @@ class Session_Pair(object):
 
         # Set SSL version
         if bool(groups[ssl_version_group]):
-            ssl_version = groups[ssl_version_group]
+            ssl_version_code = groups[ssl_version_group]
+            ssl_version = self._const.ssl_version_by_code[ssl_version_code]
             self._ssl_status.ssl_version = ssl_version
 
         length_session_id_group = 3
@@ -377,7 +379,8 @@ class Session_Pair(object):
             print 'groups:', groups
 
             cipher_suite_group = 4
-            cipher = groups[cipher_suite_group] # TODO: deal with IndexError if not
+            cipher_code = groups[cipher_suite_group] # TODO: deal with IndexError if not
+            cipher = ptp_ssl_ciphers.ssl_ciphers[cipher_code]
             self._ssl_status.ssl_cipher = cipher
 
             change_cipher_spec_group = 5
