@@ -39,10 +39,10 @@ class Sniffer(object):
 
     def _run_sniffer_thread(self):
         nic_name = self._sniff_iface_name
-        print 'sniff nic_name:', nic_name
+        #print 'sniff nic_name:', nic_name
         #local_ip = self._cli_ip
         cli_ip = self._cli_ip
-        print 'sniff cli_ip:', cli_ip
+        #print 'sniff cli_ip:', cli_ip
         #self.log("nic_name=%s; local_ip=%s" % (nic_name, local_ip))
         #nic_name = "ppp0"
         #nic_name = "wlp3s0"
@@ -63,9 +63,9 @@ class Sniffer(object):
 
 	while(True):
 	    packet_hdr, packet_body = cap.next()
-	    dumper.dump(packet_hdr,packet_body)
 	    if self._is_stop_packet(packet_body, self._stop_eth_addr):
 		break
+	    dumper.dump(packet_hdr,packet_body)
 
 	del dumper
 
@@ -139,7 +139,7 @@ class Sniffer(object):
     def log(self, msg):
         self._logger.log(msg)
 
-class TestSniffer(unittest.TestCase):
+class Test_Sniffer(unittest.TestCase):
 
     def setUp(self):
         self.pcap_filename = 'sniffed_TEST.pcap'
@@ -175,9 +175,10 @@ class TestSniffer(unittest.TestCase):
         self.assertFalse(self.sniffer.pcap_file_exists())
 
     def test_sniffer_detects_correct_number_of_packets(self):
-        num_packets_sent = 100
+        num_packets_sent = 100000
         self.sniffer.start()
-        sendp(self.test_packet, count=num_packets_sent, iface=self.sniffer._sniff_iface_name)
+        test_packet = Ether(dst='01:02:03:04:05:06')/IP(dst='10.20.30.40')/TCP(sport=12345,dport=54321,seq=12345678)/Raw("TCP payload of test packet")
+        sendp(test_packet, count=num_packets_sent, iface=self.sniffer._sniff_iface_name)
         self.sniffer.stop()
         packets = rdpcap(self.pcap_filename)
         num_packets_sniffed = len(packets)

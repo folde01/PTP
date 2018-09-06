@@ -14,7 +14,7 @@ class Packet_Sender(object):
         kill_packet = Ether(dst=net.get_stop_eth())/IP(dst=net.get_stop_ip())/TCP()
         #sendp(kill_packet, iface=net.get_nic_name())
         nic_name = net.get_sniff_iface_name()
-        print 'kill nic_name:', nic_name
+        #print 'kill nic_name:', nic_name
         sendp(kill_packet, iface=nic_name)
         
     def send_test_packet(self):

@@ -130,6 +130,7 @@ class Session_Pair(object):
         '''
         self._ssl_handshake_client_analysis()
         self._ssl_handshake_server_analysis()
+        self._ssl_is_encrypted()
         #self._ssl_tunnel_analysis()
         #self._tcp_close_analysis()
         return self._ssl_status 
@@ -165,9 +166,11 @@ class Session_Pair(object):
 
         # First two packets should be enough in most cases but we increase 
 	# it to account for any TCP segmentation or use of client authentication.
-        first_n_packets = 4     
+        #first_n_packets = 4 # not enough!  
+        first_n_packets = 8     
 
 	num_pkts_with_payload = [p.haslayer(Raw) for p in pkt_seq].count(True)
+        print 'num_pkts_with_payload:', num_pkts_with_payload
 
         # concatenate payloads of first packets
 	if num_pkts_with_payload < first_n_packets:
@@ -178,7 +181,7 @@ class Session_Pair(object):
                 if p.haslayer(Raw):
                     pkt_seq_load += self._get_load(p) 
             
-        #print "pkt_seq_load:", pkt_seq_load
+        print "pkt_seq_load:", pkt_seq_load
 
         # The payload matches a regex if it has both Client Hello (CH) and Change Cipher
         # Suite (CCS) messages (in that order, with any bytes in between).
@@ -211,15 +214,23 @@ class Session_Pair(object):
 	    ''', re.VERBOSE | re.IGNORECASE)
 
 	match = regex.match(pkt_seq_load)
+        print 'match:', match
 
         if match:
             groups = match.groups()
-            #print "groups:", groups
+
+            print "groups:", groups
+
             client_hello_group_index = 0
             ccs_group_index = 1
-            self._ssl_status.ssl_cli_hello = bool(groups[client_hello_group_index]) 
-            #print "show:", self._ssl_status.show()
-            self._ssl_status.ssl_cli_ccs = bool(groups[ccs_group_index])
+            client_hello_seen = bool(groups[client_hello_group_index])
+            self._ssl_status.ssl_cli_hello = client_hello_seen
+            client_ccs_seen = bool(groups[ccs_group_index])
+            self._ssl_status.ssl_cli_ccs = client_ccs_seen
+
+            print 'client_hello_seen:', client_hello_seen
+            print 'client_ccs_seen:', client_ccs_seen
+            print "ssl_status.show():", self._ssl_status.show()
 
 
     def _ssl_handshake_server_analysis(self):
@@ -253,7 +264,7 @@ class Session_Pair(object):
                 if p.haslayer(Raw):
                     pkt_seq_load += self._get_load(p) 
             
-        #print "pkt_seq_load:", pkt_seq_load
+        print "pkt_seq_load:", pkt_seq_load
 
         '''
         The payload if it has both server hello and change cipher
@@ -293,6 +304,7 @@ class Session_Pair(object):
             return
 
         groups = match.groups()
+        print 'groups:', groups
         
         # Set whether Server Hello seen
         handshake_record_group = 0
@@ -362,6 +374,7 @@ class Session_Pair(object):
 
         if match:
             groups = match.groups()
+            print 'groups:', groups
 
             cipher_suite_group = 4
             cipher = groups[cipher_suite_group] # TODO: deal with IndexError if not
@@ -374,6 +387,8 @@ class Session_Pair(object):
 
             #print "matched_all:", matched_all, "ssl_version:", ssl_version, \
             #    "cipher_suite:", cipher_suite, "groups:", groups,
+
+        print "ssl_status.show():", self._ssl_status.show()
 
 
 
@@ -444,32 +459,5 @@ class Session_Pair(object):
 
         return False
 
-class Test_Session_Pair(unittest.TestCase):
-        
-    def setUp(self):
-        from ptp_session_reassembler import Session_Reassembler
-
-    def tearDown(self):
+    def _ssl_is_encrypted(self):
         pass
-
-    def test_tcp_handshake_seen(self):
-        pcap = Constants().TEST_PCAP_DIR + '/tcp-handshake-observed.pcap'
-        sr = Session_Reassembler(pcap)
-        sp = sr.get_session_pairs().values()[0]
-        self.assertTrue(sp._tcp_handshake_is_seen())
-
-    def test_tcp_handshake_missing(self):
-        pcap = Constants().TEST_PCAP_DIR + '/tcp-handshake-missing.pcap'
-        sr = Session_Reassembler(pcap)
-        sp = sr.get_session_pairs().values()[0]
-        self.assertFalse(sp._tcp_handshake_is_seen())
-
-if __name__ == '__main__':
-    unittest.main()
-
-
-
-
-
-
-

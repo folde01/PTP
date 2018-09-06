@@ -37,15 +37,32 @@ def results():
     log("generate_analysis(): analysed")
     return render_template('results.html', results=results_table)
 
+@app.route('/results2')
+def results2():
+    '''Web page accessible via http://localhost/capture. Has results of capture, and a button to return to index page.'''
+    #global sniffer
+    #sniffer.stop()
+    analyser.stop_sniffing()
+    log("stop_capture(): traffic capture stopped")
+    #results_table = analyser.results()
+    results = analyser.get_analysis_results()
+    results_table = Stream_Table(results)
+    results_table.border = True
+    #print "UI results:", repr(results)
+    log("generate_analysis(): analysed")
+    return render_template('results.html', results=results_table)
+
 @app.route('/results-for-existing-pcapfile')
 def results_test():
     '''Web page accessible via http://localhost/capture. Has results of capture, and a button to return to index page.'''
     pcap_filename = "test.pcap" 
     analyser = Analyser(pcap_filename) 
-    global _results
-    _results = analyser.results()
-    results = _results
-    results_table = Stream_Table_Test(results)
+    #global _results
+    #_results = analyser.get_analysis_results()
+    results = analyser.get_analysis_results()
+    #results = _results
+    #results_table = Stream_Table_Test(results)
+    results_table = Stream_Table(results)
     results_table.border = True
     #print "UI results:", repr(results)
     log("generate_analysis(): analysed")
