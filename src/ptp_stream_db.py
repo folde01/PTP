@@ -47,7 +47,7 @@ class Stream_DB(object):
         return stream_statuses
 
     def select_all_streams2(self):
-        rows = self._select_all_stream_rows()
+        rows = self._select_all_stream_rows2()
         return rows
 
     def persist_streams(self, stream_statuses):
@@ -170,6 +170,20 @@ class Stream_DB(object):
                     bytes_to_svr, bytes_to_cli, ts_first_pkt,
                     ts_last_pkt, ssl_cli_hello, ssl_cli_ccs, ssl_svr_hello, ssl_version,
                     ssl_cipher, ssl_svr_ccs, is_encrypted FROM streams;"""
+
+	cursor.execute(sql)
+	rows = cursor.fetchall()
+	cursor.close()
+        conn.close()
+	return rows
+
+    def _select_all_stream_rows2(self):
+        conn = self._get_conn_to_ptp_db()
+	cursor = conn.cursor()
+
+	sql =  """SELECT id, inet6_ntoa(svr_ip), bytes_to_svr, bytes_to_cli, is_encrypted
+                    FROM streams
+                    ORDER BY bytes_to_cli DESC;"""
 
 	cursor.execute(sql)
 	rows = cursor.fetchall()

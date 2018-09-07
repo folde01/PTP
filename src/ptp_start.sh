@@ -7,16 +7,16 @@ fi
 
 TARGET_DEVICE_TYPE="$1"
 
-./ptp_networking.sh $TARGET_DEVICE_TYPE
-[ $? = 0 ] || ( 
-    echo "Networking setup failed. PTP not starting."
-    exit 1
-)
+#./ptp_networking.sh $TARGET_DEVICE_TYPE
+#[ $? = 0 ] || ( 
+    #echo "Networking setup failed. PTP not starting."
+    #exit 1
+#)
 
-./ptp_cipher_list.sh
-[ $? = 0 ] || ( 
-    echo "Warning: Could not download new cipher list."
-)
+#./ptp_cipher_list.sh
+#[ $? = 0 ] || ( 
+#    echo "Warning: Could not download new cipher list."
+#)
 
 python ptp_init.py reinit
 sudo rm -f sniffed.pcap

@@ -7,6 +7,6 @@ fi
 
 msg="$1"
 
-git add ptp_*.py ptp_*.sh templates/*.html test-pcap-files/*.pcap
+git add ptp_*.py ptp_*.sh templates/*.html test-pcap-files/*.pcap static/*.css
 git commit -m "$msg"
 git push origin master

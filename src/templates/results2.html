@@ -1,9 +1,37 @@
-<table border="1" cellpadding="20" cellspacing="5">
-{% for row in results %}
+<link rel="stylesheet" href="{{ url_for('static', filename='style_main.css') }}">
+<table align="center" border="1" cellpadding="20" cellspacing="5">
+
+{% set num_cols = results[0]|length + 1 %}
+{% set svr_ip_col = 1 %}
+{% set is_encrypted_col = 4 %}
+
+{#
 <tr>
-{% for value in row %}  
-    <td>{{ value }}</td>
-{% endfor %}
+	{% for col_no in range(1, num_cols) %}
+		<th>COLUMN {{ col_no }} </th>
+	{% endfor %}
 </tr>
+#}
+
+<tr>
+	<td>Connection number</td>
+	<td>Web server address</td>
+	<td>Bytes received by Target Device</td>
+	<td>Bytes sent by Target Device</td>
+	<td>Connection encrypted?</td>
+</tr>
+
+{% for row in results %}
+	<tr>
+		<td>{{ loop.index }}</td>
+		<td><a href="/svr_ip?query={{ row[svr_ip_col] }}">{{ row[svr_ip_col] }}</td>
+
+		{% for value in row[2:4] %}  
+			<td>{{ value }}</td>
+		{% endfor %}
+
+		<td><a href="/is_encrypted?query={{ row[is_encrypted_col] }}">{{ row[is_encrypted_col] }}</td>
+	</tr>
 {% endfor %}
+
 </table>
