@@ -54,7 +54,13 @@ class Stream_Status(object):
                 ts_last_pkt = ts.ts_last_pkt)
         return flattened
 
-class Stream_Flattened(object):
+class Stream_Flattened(dict):
+    def __init__(self, **kw):
+        dict.__init__(self, kw)
+        self.__dict__.update(kw)
+
+
+class Stream_Flattened_old(object):
     """An object made of arbitrary attribute/value pairs.
     Credit to Alex Martelli: 
     http://code.activestate.com/recipes/52308-the-simple-but-handy-collector-of-a-bunch-of-named/

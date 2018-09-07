@@ -68,6 +68,16 @@ def results_test():
     log("generate_analysis(): analysed")
     return render_template('results.html', results=results_table)
 
+@app.route('/results-for-existing-pcapfile2')
+def results_test2():
+    '''Web page accessible via http://localhost/capture. Has results of capture, and a button to return to index page.'''
+    pcap_filename = "test.pcap" 
+    analyser = Analyser(pcap_filename) 
+    results = analyser.get_analysis_results2()
+    #print "UI results:", repr(results)
+    log("generate_analysis(): analysed")
+    return render_template('results2.html', results=results)
+
 @app.route('/subresults/<int:cli_pt>')
 def sub_results(cli_pt):
     global _results

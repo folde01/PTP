@@ -1,0 +1,9 @@
+<table border="1" cellpadding="20" cellspacing="5">
+{% for row in results %}
+<tr>
+{% for value in row %}  
+    <td>{{ value }}</td>
+{% endfor %}
+</tr>
+{% endfor %}
+</table>

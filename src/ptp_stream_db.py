@@ -46,6 +46,10 @@ class Stream_DB(object):
 
         return stream_statuses
 
+    def select_all_streams2(self):
+        rows = self._select_all_stream_rows()
+        return rows
+
     def persist_streams(self, stream_statuses):
         conn = self._get_conn_to_ptp_db()
 	cursor = conn.cursor()

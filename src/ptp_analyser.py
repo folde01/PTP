@@ -36,6 +36,17 @@ class Analyser(object):
         #return Stream_Table(stream_statuses) 
         return stream_statuses
 
+    def get_analysis_results2(self):
+        session_pairs = self._get_session_pairs()
+        stream_statuses = [ pair.get_stream_status() for pair in session_pairs ]
+	db = self._stream_db
+        db.clear_streams()
+        db.persist_streams(stream_statuses)
+        stream_statuses = db.select_all_streams2() # list of lists (rows)
+        #print "stream_statuses:", stream_statuses
+        #return Stream_Table(stream_statuses) 
+        return stream_statuses
+
     def start_sniffing(self):
         self._sniffer.start()
 
