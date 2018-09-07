@@ -47,6 +47,14 @@ class Analyser(object):
         #return Stream_Table(stream_statuses) 
         return stream_statuses
 
+    def get_connection_details_row(self, conn_id):
+	db = self._stream_db
+        return db.get_connection_details_row(int(conn_id))
+
+    def get_encryption_details_row(self, conn_id):
+	db = self._stream_db
+        return db.get_encryption_details_row(int(conn_id))
+
     def start_sniffing(self):
         self._sniffer.start()
 

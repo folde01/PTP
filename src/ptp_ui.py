@@ -1,4 +1,4 @@
-from flask import Flask, render_template, url_for
+from flask import Flask, render_template, url_for, request
 from ptp_analyser import Analyser
 from ptp_stream_table import Stream_Table, Stream_Table_Test, Stream_Table_Small
 
@@ -78,18 +78,17 @@ def results_test2():
     log("generate_analysis(): analysed")
     return render_template('results2.html', results=results)
 
-@app.route('/subresults/<int:cli_pt>')
-def sub_results(cli_pt):
-    global _results
-    results = _results 
-    subresults = None
+@app.route('/encryption_details')
+def encryption_details():
+    conn_id = request.args.get('conn_id')
+    results = analyser.get_encryption_details_row(conn_id)
+    return render_template('encryption_details.html', results=results)
 
-    for result in results:
-        pass
-
-    results_table = Stream_Table_Small(results)
-    results_table.border = True
-    return render_template('sub-results.html', results=results_table)
+@app.route('/connection_details')
+def connection_details():
+    conn_id = request.args.get('conn_id')
+    results = analyser.get_connection_details_row(conn_id)
+    return render_template('connection_details.html', results=results)
 
 def log(msg): 
     '''Writes to a log file, for debugging purposes'''

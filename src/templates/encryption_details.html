@@ -1,0 +1,44 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='style_main.css') }}">
+<table align="center" border="0" cellpadding="20" cellspacing="10">
+
+<tr>
+	<td>Connection encrypted? (see key below)</td>
+	<td>{{ results[0] }}</td>
+</tr>
+
+<tr>
+	<td>SSL version used</td>
+	<td>{{ results[1] }}</td>
+</tr>
+
+<tr>
+	<td>SSL cipher suite used</td>
+	<td>{{ results[2] }}</td>
+</tr>
+
+</table>
+
+<p>
+
+<table align="center" border="0" cellpadding="20" cellspacing="10">
+
+<tr>
+    <th>'Connection encrypted?' value</th>
+    <th>Meaning</th>
+</tr>
+
+<tr>
+	<td>Yes</td>
+	<td>The beginning and completion of the SSL handshake was observed with regards to both client and server, in that the following SSL protocol messages were seen: Client Hello, Server Hello, Client Change Cipher Suite and Server Change Cipher Suite.</td>
+</tr>
+
+<tr>
+	<td>No</td>
+	<td>Port 80 was used (suggesting HTTP rather than HTTPS) and no SSL handshake was seen.</td>
+</tr>
+
+<tr>
+	<td>Unknown</td>
+	<td>It's possible the connection was encrypted, but that the SSL handshake had already happened when the traffic started being observed.</td>
+</tr>
+

@@ -1,5 +1,5 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style_main.css') }}">
-<table align="center" border="1" cellpadding="20" cellspacing="5">
+<table align="center" border="0" cellpadding="20" cellspacing="10">
 
 {% set num_cols = results[0]|length + 1 %}
 {% set svr_ip_col = 1 %}
@@ -14,23 +14,24 @@
 #}
 
 <tr>
-	<td>Connection number</td>
-	<td>Web server address</td>
-	<td>Bytes received by Target Device</td>
-	<td>Bytes sent by Target Device</td>
-	<td>Connection encrypted?</td>
+	<th>TCP connection count</th>
+	<th>Web server address</th>
+	<th>Bytes sent by Target Device</th>
+	<th>Bytes received by Target Device</th>
+	<th>Connection encrypted?</th>
 </tr>
 
 {% for row in results %}
+	{% set connection_id = row[0] %}
 	<tr>
 		<td>{{ loop.index }}</td>
-		<td><a href="/svr_ip?query={{ row[svr_ip_col] }}">{{ row[svr_ip_col] }}</td>
+		<td><a href="/connection_details?conn_id={{ connection_id }}">{{ row[svr_ip_col] }}</td>
 
 		{% for value in row[2:4] %}  
 			<td>{{ value }}</td>
 		{% endfor %}
 
-		<td><a href="/is_encrypted?query={{ row[is_encrypted_col] }}">{{ row[is_encrypted_col] }}</td>
+		<td><a href="/encryption_details?conn_id={{ connection_id }}">{{ row[is_encrypted_col] }}</td>
 	</tr>
 {% endfor %}
 

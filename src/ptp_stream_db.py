@@ -191,6 +191,31 @@ class Stream_DB(object):
         conn.close()
 	return rows
 
+    def get_encryption_details_row(self, conn_id):
+        conn = self._get_conn_to_ptp_db()
+	cursor = conn.cursor()
+	sql =  """SELECT is_encrypted, ssl_version, ssl_cipher 
+                  FROM streams
+                  WHERE id = %s"""
+	cursor.execute(sql, (conn_id,))
+	row = cursor.fetchone()
+	cursor.close()
+        conn.close()
+	return row
+
+    def get_connection_details_row(self, conn_id):
+        conn = self._get_conn_to_ptp_db()
+	cursor = conn.cursor()
+	sql =  """SELECT inet6_ntoa(cli_ip), cli_pt, inet6_ntoa(svr_ip), svr_pt,
+                    ts_first_pkt, ts_last_pkt
+                  FROM streams
+                  WHERE id = %s"""
+	cursor.execute(sql, (conn_id,))
+	row = cursor.fetchone()
+	cursor.close()
+        conn.close()
+	return row
+
     def select_stream_by_quad_tuple(self, quad_tuple):
         stream_status = None
         print("quad_tuple:", quad_tuple)
