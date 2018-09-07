@@ -1,6 +1,44 @@
-table {
+*{ 
+  font-family: Helvetica;
+}
+table.results {
   width: 100%;
 }
-tr {
-  background-color: #aef;
+table.results th {
+  text-align: center;
+}
+table.results tr {
+  background-color: #AEF;
+  text-align: right;
+}
+
+table.heading {
+  width: 100%;
+}
+table.heading tr {
+  background-color: #F7AD8B;
+}
+
+table.key {
+  width: 100%;
+}
+table.key tr {
+  background-color: #F7AD8B;
+  text-align: center;
+}
+
+table.encryption {
+  width: 100%;
+}
+table.encryption tr {
+  background-color: #AEF;
+  text-align: center;
+}
+
+table.connection {
+  width: 100%;
+}
+table.connection tr {
+  background-color: #AEF;
+  text-align: center;
 }

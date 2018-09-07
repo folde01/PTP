@@ -1,5 +1,17 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style_main.css') }}">
-<table align="center" border="0" cellpadding="20" cellspacing="10">
+
+<table class="heading" align="center" border="0" cellpadding="20" cellspacing="10">
+<tr>
+	<td style="text-align:center"><h2>Plain Text Police - traffic capture results</h2>
+		<p>
+		<button type="button">Start over and run a new traffic capture</button>
+		</p>
+	</td>
+</tr>
+</table>
+
+
+<table class="results" align="center" border="0" cellpadding="20" cellspacing="10">
 
 {% set num_cols = results[0]|length + 1 %}
 {% set svr_ip_col = 1 %}
@@ -24,14 +36,11 @@
 {% for row in results %}
 	{% set connection_id = row[0] %}
 	<tr>
-		<td>{{ loop.index }}</td>
-		<td><a href="/connection_details?conn_id={{ connection_id }}">{{ row[svr_ip_col] }}</td>
-
-		{% for value in row[2:4] %}  
-			<td>{{ value }}</td>
-		{% endfor %}
-
-		<td><a href="/encryption_details?conn_id={{ connection_id }}">{{ row[is_encrypted_col] }}</td>
+		<td align="center">{{ loop.index }}</td>
+		<td align="center"><a href="/connection_details?conn_id={{ connection_id }}">{{ row[svr_ip_col] }}</td>
+		<td align="right">{{ row[2] }}</td>
+		<td align="right">{{ row[3] }}</td>
+		<td align="center"><a href="/encryption_details?conn_id={{ connection_id }}">{{ row[is_encrypted_col] }}</td>
 	</tr>
 {% endfor %}
 
