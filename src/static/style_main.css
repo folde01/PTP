@@ -42,3 +42,11 @@ table.connection tr {
   background-color: #AEF;
   text-align: center;
 }
+
+table.instructions {
+  width: 100%;
+}
+table.instructions tr {
+  background-color: #AEF;
+  text-align: center;
+}

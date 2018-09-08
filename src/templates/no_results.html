@@ -1,0 +1,20 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='style_main.css') }}">
+
+<table class="heading" align="center" border="0" cellpadding="20" cellspacing="10">
+<tr>
+	<td style="text-align:center">
+		<h2>Plain Text Police - traffic capture results</h2>
+		<p>
+        <form action={{ url_for('index2') }}>
+            <input type="submit" value="Start over and run a new traffic capture"</>
+        </form>
+		</p>
+	</td>
+</tr>
+</table>
+
+<table class="results" align="center" border="0" cellpadding="20" cellspacing="10">
+<tr>
+	<th>No network traffic detected!</th>
+</tr>
+</table>

@@ -13,6 +13,18 @@ def index():
     '''Web page accessible via http://localhost/index. Has 'start capture' button.'''
     return render_template('index.html')
 
+@app.route('/index2')
+def index2():  
+    '''Web page accessible via http://localhost/index. Has 'start capture' button.'''
+    return render_template('index2.html')
+
+@app.route('/capture2')
+def capture2():
+    '''Web page accessible via http://localhost/capture-started. Has 'stop capture and see results' button.'''
+    analyser.start_sniffing()
+    log("start_capture(): traffic capture started")
+    return render_template('capturing2.html')
+
 @app.route('/capture')
 def capture():
     '''Web page accessible via http://localhost/capture-started. Has 'stop capture and see results' button.'''
@@ -40,17 +52,13 @@ def results():
 @app.route('/results2')
 def results2():
     '''Web page accessible via http://localhost/capture. Has results of capture, and a button to return to index page.'''
-    #global sniffer
-    #sniffer.stop()
     analyser.stop_sniffing()
-    log("stop_capture(): traffic capture stopped")
-    #results_table = analyser.results()
-    results = analyser.get_analysis_results()
-    results_table = Stream_Table(results)
-    results_table.border = True
-    #print "UI results:", repr(results)
-    log("generate_analysis(): analysed")
-    return render_template('results.html', results=results_table)
+    #log("stop_capture(): traffic capture stopped")
+    results = analyser.get_analysis_results2()
+    if results:
+        return render_template('results2.html', results=results)
+    else:
+        return render_template('no_results.html')
 
 @app.route('/results-for-existing-pcapfile')
 def results_test():
