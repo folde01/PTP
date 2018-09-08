@@ -181,7 +181,7 @@ class Session_Pair(object):
 	pkt_seq = self._cli_to_svr
 
         if pkt_seq is None:
-            print "cli_to_svr is None"
+            #print "cli_to_svr is None"
             return
 
 	pkt_seq_load = ''
@@ -192,7 +192,7 @@ class Session_Pair(object):
         first_n_packets = 8     
 
 	num_pkts_with_payload = [p.haslayer(Raw) for p in pkt_seq].count(True)
-        print 'num_pkts_with_payload:', num_pkts_with_payload
+        #print 'num_pkts_with_payload:', num_pkts_with_payload
 
         # concatenate payloads of first packets
 	if num_pkts_with_payload < first_n_packets:
@@ -203,7 +203,7 @@ class Session_Pair(object):
                 if p.haslayer(Raw):
                     pkt_seq_load += self._get_load(p) 
             
-        print "pkt_seq_load:", pkt_seq_load
+        #print "pkt_seq_load:", pkt_seq_load
 
         # The payload matches a regex if it has both Client Hello (CH) and Change Cipher
         # Suite (CCS) messages (in that order, with any bytes in between).
@@ -236,12 +236,12 @@ class Session_Pair(object):
 	    ''', re.VERBOSE | re.IGNORECASE)
 
 	match = regex.match(pkt_seq_load)
-        print 'match:', match
+        #print 'match:', match
 
         if match:
             groups = match.groups()
 
-            print "groups:", groups
+            #print "groups:", groups
 
             client_hello_group_index = 0
             ccs_group_index = 1
@@ -250,9 +250,9 @@ class Session_Pair(object):
             client_ccs_seen = bool(groups[ccs_group_index])
             self._ssl_status.ssl_cli_ccs = client_ccs_seen
 
-            print 'client_hello_seen:', client_hello_seen
-            print 'client_ccs_seen:', client_ccs_seen
-            print "ssl_status.show():", self._ssl_status.show()
+            #print 'client_hello_seen:', client_hello_seen
+            #print 'client_ccs_seen:', client_ccs_seen
+            #print "ssl_status.show():", self._ssl_status.show()
 
 
     def _ssl_handshake_server_analysis(self):
@@ -260,7 +260,7 @@ class Session_Pair(object):
 	pkt_seq = self._svr_to_cli
 
         if pkt_seq is None:
-            print "svr_to_cli is None"
+            #print "svr_to_cli is None"
             return
         
 	pkt_seq_load = ''
@@ -286,7 +286,7 @@ class Session_Pair(object):
                 if p.haslayer(Raw):
                     pkt_seq_load += self._get_load(p) 
             
-        print "pkt_seq_load:", pkt_seq_load
+        #print "pkt_seq_load:", pkt_seq_load
 
         '''
         The payload if it has both server hello and change cipher
@@ -326,7 +326,7 @@ class Session_Pair(object):
             return
 
         groups = match.groups()
-        print 'groups:', groups
+        #print 'groups:', groups
         
         # Set whether Server Hello seen
         handshake_record_group = 0
@@ -397,7 +397,7 @@ class Session_Pair(object):
 
         if match:
             groups = match.groups()
-            print 'groups:', groups
+            #print 'groups:', groups
 
             cipher_suite_group = 4
             cipher_code = groups[cipher_suite_group] # TODO: deal with IndexError if not
@@ -412,7 +412,7 @@ class Session_Pair(object):
             #print "matched_all:", matched_all, "ssl_version:", ssl_version, \
             #    "cipher_suite:", cipher_suite, "groups:", groups,
 
-        print "ssl_status.show():", self._ssl_status.show()
+        #print "ssl_status.show():", self._ssl_status.show()
 
 
 

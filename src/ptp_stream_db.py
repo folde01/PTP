@@ -340,7 +340,7 @@ class Stream_DB(object):
             ssl_cli_hello bool,
             ssl_cli_ccs bool,
             ssl_svr_hello bool,
-            ssl_version varbinary(16),
+            ssl_version varbinary(64),
             ssl_cipher varbinary(128),
             ssl_svr_ccs bool,
             is_encrypted varbinary(16) )"""

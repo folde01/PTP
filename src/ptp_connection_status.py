@@ -94,8 +94,8 @@ class SSL_Status(object):
         self.ssl_cli_hello = kwargs.get('ssl_cli_hello', False)
         self.ssl_cli_ccs = kwargs.get('ssl_cli_ccs', False)
         self.ssl_svr_hello = kwargs.get('ssl_svr_hello', False)
-        self.ssl_version = kwargs.get('ssl_version', "NO VERSION")
-        self.ssl_cipher = kwargs.get('ssl_cipher', "NO CIPHER")
+        self.ssl_version = kwargs.get('ssl_version', "Version information not available")
+        self.ssl_cipher = kwargs.get('ssl_cipher', "Cipher information not available")
         self.ssl_svr_ccs = kwargs.get('ssl_svr_ccs', False)
         self.is_encrypted = kwargs.get('is_encrypted', Is_Encrypted_Enum().UNASSESSED)
 

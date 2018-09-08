@@ -9,7 +9,7 @@ CONFIG_FILE="ptp_network_conf.py"
 
 function usage()
 {
-	echo "Usage: $0 [virtual|physical|loopback]"
+	echo "Usage: $0 <virtual|physical>"
 }
 
 if [ $# -ne 1 ] || ( [ $DEVICE_TYPE != 'virtual' ] && \

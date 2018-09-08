@@ -1,6 +1,11 @@
+a { 
+  color: blue;
+}
+
 *{ 
   font-family: Helvetica;
 }
+
 table.results {
   width: 100%;
 }

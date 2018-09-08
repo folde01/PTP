@@ -3,6 +3,7 @@ from ptp_session_reassembler import Session_Reassembler
 from ptp_session_pair import Session_Pair
 from ptp_stream_db import Stream_DB
 from ptp_constants import Constants 
+import socket
 
 
 class Analyser(object):
@@ -43,13 +44,31 @@ class Analyser(object):
         db.clear_streams()
         db.persist_streams(stream_statuses)
         stream_statuses = db.select_all_streams2() # list of lists (rows)
-        #print "stream_statuses:", stream_statuses
-        #return Stream_Table(stream_statuses) 
-        return stream_statuses
+        results = []
+        for ss in stream_statuses:
+            svr_ip_addr = ss[1]
+            fqdn = self._get_fqdn(svr_ip_addr) 
+            result = list(ss)
+            result.append(fqdn)
+            results.append(result)
+        return results 
+
+
+    def _get_fqdn(self, ip_addr):
+        try:
+            fqdn = socket.gethostbyaddr(ip_addr)[0]
+        except socket.herror:
+            fqdn = ip_addr
+        return fqdn
 
     def get_connection_details_row(self, conn_id):
 	db = self._stream_db
-        return db.get_connection_details_row(int(conn_id))
+        row = db.get_connection_details_row(int(conn_id))
+        result = list(row)
+        svr_ip_addr = result[2] 
+        fqdn = self._get_fqdn(svr_ip_addr)
+        result.append(fqdn)
+        return result 
 
     def get_encryption_details_row(self, conn_id):
 	db = self._stream_db

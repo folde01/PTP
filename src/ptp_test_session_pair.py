@@ -15,11 +15,11 @@ class Test_Session_Pair(unittest.TestCase):
     def setUp(self):
         self.pcap = 'test-pcap-files/ssl-test.pcap'
         cli_ip, cli_pt, svr_ip, svr_pt = ('10.0.2.15', '55083', '104.25.157.13', '443')
-        self.connection_with_ssl_handshake = (cli_ip, cli_pt, svr_ip, svr_pt) 
+        self.stream_with_ssl_handshake = (cli_ip, cli_pt, svr_ip, svr_pt) 
         cli_ip, cli_pt, svr_ip, svr_pt = ('10.0.2.15', '47769', '52.95.132.37', '443')
-        self.connection_without_ssl_handshake = (cli_ip, cli_pt, svr_ip, svr_pt) 
+        self.stream_without_ssl_handshake = (cli_ip, cli_pt, svr_ip, svr_pt) 
         cli_ip, cli_pt, svr_ip, svr_pt = ('10.0.2.15', '33074', '216.58.206.33', '80')
-        self.connection_using_http = (cli_ip, cli_pt, svr_ip, svr_pt) 
+        self.stream_using_http = (cli_ip, cli_pt, svr_ip, svr_pt) 
 
     def tearDown(self):
         pass
@@ -28,7 +28,7 @@ class Test_Session_Pair(unittest.TestCase):
         print '------------------- test_ssl_cli_hello_is_seen -------------------'
         reassembler = Session_Reassembler(self.pcap)
         pairs = reassembler.get_session_pairs() 
-        pair_id = self.connection_with_ssl_handshake
+        pair_id = self.stream_with_ssl_handshake
         pair = pairs[pair_id]
         pair._ssl_handshake_client_analysis()
         ssl_status = pair._ssl_status
@@ -39,7 +39,7 @@ class Test_Session_Pair(unittest.TestCase):
         print '------------------- test_ssl_cli_hello_is_seen -------------------'
         reassembler = Session_Reassembler(self.pcap)
         pairs = reassembler.get_session_pairs() 
-        pair_id = self.connection_without_ssl_handshake
+        pair_id = self.stream_without_ssl_handshake
         pair = pairs[pair_id]
         pair._ssl_handshake_client_analysis()
         ssl_status = pair._ssl_status
@@ -51,7 +51,7 @@ class Test_Session_Pair(unittest.TestCase):
         print '------------------- test_ssl_cli_hello_is_seen -------------------'
         reassembler = Session_Reassembler(self.pcap)
         pairs = reassembler.get_session_pairs() 
-        pair_id = self.connection_with_ssl_handshake
+        pair_id = self.stream_with_ssl_handshake
         pair = pairs[pair_id]
         pair._ssl_handshake_client_analysis()
         ssl_status = pair._ssl_status
@@ -62,7 +62,7 @@ class Test_Session_Pair(unittest.TestCase):
         print '------------------- test_ssl_cli_hello_is_seen -------------------'
         reassembler = Session_Reassembler(self.pcap)
         pairs = reassembler.get_session_pairs() 
-        pair_id = self.connection_without_ssl_handshake
+        pair_id = self.stream_without_ssl_handshake
         pair = pairs[pair_id]
         pair._ssl_handshake_client_analysis()
         ssl_status = pair._ssl_status
@@ -73,7 +73,7 @@ class Test_Session_Pair(unittest.TestCase):
         print '------------------- test_ssl_svr_hello_is_seen -------------------'
         reassembler = Session_Reassembler(self.pcap)
         pairs = reassembler.get_session_pairs() 
-        pair_id = self.connection_with_ssl_handshake
+        pair_id = self.stream_with_ssl_handshake
         pair = pairs[pair_id]
         pair._ssl_handshake_server_analysis()
         ssl_status = pair._ssl_status
@@ -84,7 +84,7 @@ class Test_Session_Pair(unittest.TestCase):
         print '------------------- test_ssl_svr_hello_is_not_seen -------------------'
         reassembler = Session_Reassembler(self.pcap)
         pairs = reassembler.get_session_pairs() 
-        pair_id = self.connection_without_ssl_handshake
+        pair_id = self.stream_without_ssl_handshake
         pair = pairs[pair_id]
         pair._ssl_handshake_server_analysis()
         ssl_status = pair._ssl_status
@@ -95,7 +95,7 @@ class Test_Session_Pair(unittest.TestCase):
         print '------------------- test_ssl_svr_ccs_is_seen -------------------'
         reassembler = Session_Reassembler(self.pcap)
         pairs = reassembler.get_session_pairs() 
-        pair_id = self.connection_with_ssl_handshake
+        pair_id = self.stream_with_ssl_handshake
         pair = pairs[pair_id]
         pair._ssl_handshake_server_analysis()
         ssl_status = pair._ssl_status
@@ -106,7 +106,7 @@ class Test_Session_Pair(unittest.TestCase):
         print '------------------- test_ssl_svr_ccs_is_not_seen -------------------'
         reassembler = Session_Reassembler(self.pcap)
         pairs = reassembler.get_session_pairs() 
-        pair_id = self.connection_without_ssl_handshake
+        pair_id = self.stream_without_ssl_handshake
         pair = pairs[pair_id]
         pair._ssl_handshake_server_analysis()
         ssl_status = pair._ssl_status
@@ -118,7 +118,7 @@ class Test_Session_Pair(unittest.TestCase):
         cipher_in_pcap = 'TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256' 
         reassembler = Session_Reassembler(self.pcap)
         pairs = reassembler.get_session_pairs() 
-        pair_id = self.connection_with_ssl_handshake
+        pair_id = self.stream_with_ssl_handshake
         pair = pairs[pair_id]
         pair._ssl_handshake_server_analysis()
         ssl_status = pair._ssl_status
@@ -130,7 +130,7 @@ class Test_Session_Pair(unittest.TestCase):
         version_in_pcap = 'TLS 1.2'
         reassembler = Session_Reassembler(self.pcap)
         pairs = reassembler.get_session_pairs() 
-        pair_id = self.connection_with_ssl_handshake
+        pair_id = self.stream_with_ssl_handshake
         pair = pairs[pair_id]
         pair._ssl_handshake_server_analysis()
         ssl_status = pair._ssl_status
@@ -141,7 +141,7 @@ class Test_Session_Pair(unittest.TestCase):
         print '------------------- test_is_encrypted -------------------'
         reassembler = Session_Reassembler(self.pcap)
         pairs = reassembler.get_session_pairs() 
-        pair_id = self.connection_with_ssl_handshake
+        pair_id = self.stream_with_ssl_handshake
         pair = pairs[pair_id]
         #ssl_status = pair._get_ssl_status()
         stream_status = pair.get_stream_status()
@@ -152,7 +152,7 @@ class Test_Session_Pair(unittest.TestCase):
         print '------------------- test_is_not_encrypted -------------------'
         reassembler = Session_Reassembler(self.pcap)
         pairs = reassembler.get_session_pairs() 
-        pair_id = self.connection_using_http
+        pair_id = self.stream_using_http
         pair = pairs[pair_id]
         #ssl_status = pair._get_ssl_status()
         stream_status = pair.get_stream_status()
