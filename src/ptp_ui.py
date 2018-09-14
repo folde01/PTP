@@ -7,35 +7,35 @@ analyser = Analyser()
 #sniffer = analyser.get_sniffer() 
 _results = None
 
+@app.route('/index_old')
+def index_old():  
+    '''Web page accessible via http://localhost/index. Has 'start capture' button.'''
+    return render_template('index_old.html')
+
 @app.route('/index')
 @app.route('/')
 def index():  
     '''Web page accessible via http://localhost/index. Has 'start capture' button.'''
     return render_template('index.html')
 
-@app.route('/index2')
-def index2():  
-    '''Web page accessible via http://localhost/index. Has 'start capture' button.'''
-    return render_template('index2.html')
-
-@app.route('/capture2')
-def capture2():
+@app.route('/capture')
+def capture():
     '''Web page accessible via http://localhost/capture-started. Has 'stop capture and see results' button.'''
     analyser.start_sniffing()
     log("start_capture(): traffic capture started")
-    return render_template('capturing2.html')
+    return render_template('capturing.html')
 
-@app.route('/capture')
-def capture():
+@app.route('/capture_old')
+def capture_old():
     '''Web page accessible via http://localhost/capture-started. Has 'stop capture and see results' button.'''
     #global sniffer
     #sniffer.start()
     analyser.start_sniffing()
     log("start_capture(): traffic capture started")
-    return render_template('capturing.html')
+    return render_template('capturing_old.html')
 
-@app.route('/results')
-def results():
+@app.route('/results_old')
+def results_old():
     '''Web page accessible via http://localhost/capture. Has results of capture, and a button to return to index page.'''
     #global sniffer
     #sniffer.stop()
@@ -49,14 +49,14 @@ def results():
     log("generate_analysis(): analysed")
     return render_template('results.html', results=results_table)
 
-@app.route('/results2')
-def results2():
+@app.route('/results')
+def results():
     '''Web page accessible via http://localhost/capture. Has results of capture, and a button to return to index page.'''
     analyser.stop_sniffing()
     #log("stop_capture(): traffic capture stopped")
     results = analyser.get_analysis_results2()
     if results:
-        return render_template('results2.html', results=results)
+        return render_template('results.html', results=results)
     else:
         return render_template('no_results.html')
 
@@ -106,4 +106,4 @@ def log(msg):
         f.write(msg)
 
 if __name__ == "__main__":
-    app.run(host= '0.0.0.0')
+    app.run(host='localhost')

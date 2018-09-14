@@ -30,6 +30,10 @@ sudo apt-get update
 sudo apt-get -y dist-upgrade
 sudo apt-get -y install virtualbox-guest-dkms
 
+# for PTP certificate:
+
+sudo apt-get install ca-certificates
+
 # Dependencies: VPN (pptpd to start with), ntp, virtualenv, python 2, pip, scapy, libnids, pynids, flask, mock ...
 
 sudo apt-get install mysql-server -y
