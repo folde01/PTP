@@ -42,7 +42,15 @@ class Test_Sniffer(unittest.TestCase):
     def test_sniffer_detects_correct_number_of_packets(self):
         num_packets = 100000
         pcap_filename = 'sniffer_test.pcap'
-        test_packet = Ether(dst='0a:0b:0c:0d:0e:0f')/IP(dst='10.20.30.40')/TCP(sport=12345,dport=54321)/Raw("TCP payload of test packet")
+        dest_eth='0a:0b:0c:0d:0e:0f'
+        dest_ip='10.20.30.40'
+        src_pt=12345
+        dest_pt=54321
+        payload="TCP payload of test packet"
+        test_packet = Ether(dst=dest_eth) \
+                /IP(dst=dest_ip) \
+                /TCP(sport=src_pt,dport=dest_pt)\
+                /Raw(payload)
         sniffer = Sniffer(pcap_filename=pcap_filename)
 
         sniffer.start()
