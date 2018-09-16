@@ -7,6 +7,12 @@ fi
 
 msg="$1"
 
-git add ptp_*.py ptp_*.sh templates/*.html test-pcap-files/*.pcap static/*.css
+git add ptp_*.py
+git add ptp_*.sh
+git add templates/*.html
+git add test-pcap-files/*.pcap
+git add static/*.css
+git add jupyter-notebooks/*.ipynb 
+
 git commit -m "$msg"
 git push origin master

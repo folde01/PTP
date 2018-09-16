@@ -55,6 +55,7 @@ def results():
     analyser.stop_sniffing()
     #log("stop_capture(): traffic capture stopped")
     results = analyser.get_analysis_results2()
+    print 'results:', results
     if results:
         return render_template('results.html', results=results)
     else:
