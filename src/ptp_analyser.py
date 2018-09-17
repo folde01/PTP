@@ -43,7 +43,7 @@ class Analyser(object):
 	db = self._stream_db
         db.clear_streams()
         db.persist_streams(stream_statuses)
-        stream_statuses = db.select_all_streams2() # list of lists (rows)
+        stream_statuses = db.select_all_streams() # list of lists (rows)
         results = []
         for ss in stream_statuses:
             svr_ip_addr = ss[1]

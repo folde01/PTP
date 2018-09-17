@@ -7,13 +7,10 @@ class Pcap:
         unit testing.'''
 
         pkts1 = rdpcap(pcap1)
-        #print pkts1, len(pkts1)
         pkts1_writer = PcapWriter(pcap1, append=True, sync=True)
         pkts2 = rdpcap(pcap2)
-        #print pkts2, len(pkts2)
 
         for pkt in pkts2:
             pkts1_writer.write(pkt)
 
         pkts1 = rdpcap(pcap1)
-        #print pkts1, len(pkts1)

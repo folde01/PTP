@@ -42,4 +42,4 @@ function reconfigure_network()
 #reconfigure_network
 python ptp_init.py reinit
 sudo rm -f sniffed.pcap
-sudo PATH=$PATH python ptp_ui.py
+sudo PATH=$PATH python ptp_controller.py
