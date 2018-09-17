@@ -2,7 +2,7 @@ from __future__ import print_function
 from datetime import datetime
 import time
 import MySQLdb
-from ptp_connection_status import Stream_Status, TCP_Status, SSL_Status, Stream_Flattened
+from ptp_connection_status import Stream_Status, TCP_Status, SSL_Status
 import sys
 from ptp_logger import Logger
 
