@@ -143,7 +143,6 @@ class Test_Session_Pair(unittest.TestCase):
         pairs = reassembler.get_session_pairs() 
         pair_id = self.stream_with_ssl_handshake
         pair = pairs[pair_id]
-        #ssl_status = pair._get_ssl_status()
         stream_status = pair.get_stream_status()
         is_encrypted = stream_status.ssl_status.is_encrypted
         self.assertEquals(is_encrypted, Is_Encrypted_Enum.YES)

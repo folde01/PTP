@@ -286,10 +286,8 @@ class Session_Pair(object):
                 if p.haslayer(Raw):
                     pkt_seq_load += self._get_load(p) 
             
-        #print "pkt_seq_load:", pkt_seq_load
-
         '''
-        The payload if it has both server hello and change cipher
+        Check the payload to see if it has both server hello and change cipher
         suite messages (in that order, with any bytes in between). This has to 
         be done in parts. The first part ends with the session ID length,
         as we need to know what it is before proceeding. We grab the agreed 
