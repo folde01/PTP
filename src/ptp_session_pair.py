@@ -2,7 +2,6 @@ from scapy.all import rdpcap, PacketList, TCP, Raw
 from ptp_network import Network
 from ptp_constants import Constants, Is_Encrypted_Enum
 from ptp_connection_status import Stream_Status, TCP_Status, SSL_Status
-import unittest
 import re
 import ptp_ssl_ciphers
 

@@ -2,7 +2,6 @@ import logging
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 from scapy.all import Ether, IP, TCP, sendp, rdpcap, Raw, PacketList, PPP
 import threading
-import unittest
 import os
 import time
 import pcapy
