@@ -117,6 +117,9 @@ case "$DEVICE_TYPE" in
 		;;
 	"physical")
 		configure_networking_for_physical_device
+		GATEWAY_IFACE_IP_ADDR=`ip addr show $GATEWAY_IFACE | grep "inet " | awk '{print $2}' | cut -d/ -f1`
+		echo "Connect your physical Target Device's VPN to this IP address:"
+		echo $GATEWAY_IFACE_IP_ADDR
 		;;
 	"loopback")
 		configure_networking_for_loopback_testing
@@ -124,5 +127,10 @@ case "$DEVICE_TYPE" in
 esac
 
 cat /dev/null > $CONFIG_FILE
-echo "gateway_iface = '$GATEWAY_IFACE'" >> $CONFIG_FILE
-echo "sniff_iface = '$SNIFF_IFACE'" >> $CONFIG_FILE
+(
+echo "# DO NOT EDIT - CREATED DYNAMICALLY"
+echo "gateway_iface = '$GATEWAY_IFACE'"
+echo "sniff_iface = '$SNIFF_IFACE'"
+) >> $CONFIG_FILE
+
+

@@ -9,6 +9,7 @@ msg="$1"
 
 git add ptp_*.py
 git add ptp_*.sh
+git add ptp_*.txt
 git add templates/*.html
 git add test-pcap-files/*.pcap
 git add static/*.css

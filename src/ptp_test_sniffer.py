@@ -41,7 +41,7 @@ class Test_Sniffer(unittest.TestCase):
 
     def test_sniffer_detects_correct_number_of_packets(self):
         num_packets = 100000
-        pcap_filename = 'sniffer_test.pcap'
+        pcap_filename = 'test-pcap-files/sniffer_test.pcap'
         dest_eth='0a:0b:0c:0d:0e:0f'
         dest_ip='10.20.30.40'
         src_pt=12345
