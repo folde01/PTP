@@ -6,26 +6,44 @@ The term 'Target Device' refers to the mobile device being monitored by PTP. Thi
 
 Make sure the host system is up to date first by running OS updates. Open a Terminal and run these commands:
 
+
+
 sudo apt-get update
 sudo apt-get dist-upgrade
 sudo reboot
+
+
 
 When the system comes up, insert the accompanying USB stick. It has one file on it: ptp.tar
 
 Copy that file into your home folder and untar it. Back in a Terminal session:
 
+
+
 cd ~
 tar xf ptp.tar
 
+
+
 This should create a folder in your home folder called 'ptp'. Now set an environment variable you'll use later for installing some prerequisites:
+
+
 
 PTP_HOME=$HOME/PTP
 
+
+
 Now install MySQL, setting the password for MySQL user 'root' to 'password' when asked. (Note: PTP's settings for these credentials are in ptp_stream_db.py if you want to change them.) 
+
+
 
 sudo apt-get install mysql-server -y
 
+
+
 Install and configure the PPP VPN server, which we'll connect your Target Device through later on:
+
+
 
 sudo apt-get install pptpd -y
 cd /etc/ppp
@@ -34,17 +52,30 @@ sudo cp $PTP_HOME/pptpd/pptpd-options .
 sudo cp chap-secrets chap-secrets.orig
 sudo echo "vpnuser pptpd password *" > chap-secrets
 
+
+
+
 Note the contents of the chap-secrets file you just made. You will use the VPN name 'vpnuser' and the VPN password 'password' later on when you configure the Target Device's VPN client. Feel free to change these values in chap-secrets now if you want them to be different later. 
 
 More prerequisites to for the Python modules we are using:
 
+
+
 sudo apt-get -y install libnet1-dev ntp libmysqlclient-dev python-dev python-pip libpcap-dev pkg-config libglib2.0-dev
+
+
 
 And the modules themselves:
 
+
+
 python -m pip install flask scapy psutil netifaces mysqlclient
 
+
+
 We need to download and install Pcapy from source:
+
+
 
 sudo apt-get install git -y
 cd /tmp
@@ -52,10 +83,16 @@ git clone https://github.com/CoreSecurity/pcapy.git
 cd pcapy
 sudo python setup.py install
 
+
+
 Now that the prerequisites for PTP are installed, let's set up the underlying network so that we can connect a physical Target Device.
+
+
 
 cd $PTP_HOME/src
 ./ptp_networking.sh physical
+
+
 
 You should get output like this:
 
@@ -72,7 +109,10 @@ On an Android device, under your Settings, find the VPN settings. Create a new V
 When you've done that, we can start PTP. Again, in a Terminal on the host system:
 
 
-./ptp_start.sh physical
+
+./ptp_start.sh
+
+
 
 You should see output like this:
 
@@ -96,7 +136,6 @@ Copy the URL from that last line into a web browser, and you should see the PTP 
 
 Please be aware that TCP traffic from the host system is picked up by PTP, so avoid using the Internet from the host system while you monitor your Target Device with PTP. However, this is not the case for when you are using PTP with a virtual Target Device, described next.
 
-
 First you will need to install Android Studio from https://developer.android.com/studio/ ensuring first that you have the required Java SDK version installed. In Android Studio under Tools, create a new virtual device. The one used successfully in development of PTP had the following specifications, which are recommended:
 
 Name: Nexus_5_API_24    <----- you'll need this name momentarily when you start it!
@@ -107,23 +146,37 @@ CPU/ABI: x86
 
 With your virtual Target Device now set up, you'll now need to configure PTP's underlying network to support this device. We'll use the same script we used for the physical Target Device, but now for a virtual one:
 
+
+
 ./ptp_networking.sh virtual
+
+
 
 Also, if the following wasn't already set during the Android Studio installation, set it so that we know where to find the Android SDK (the installer should have put installed the SDK in your home folder under $HOME/Android/Sdk):
 
+
+
 export ANDROID_HOME=$HOME/Android/Sdk
+
+
 
 Now we're ready to start the virtual Target Device. First, have Android Studio running, and AVD Manager. Then start the virtual device from the Terminal window (we need to start it this way, rather than through AVD Manager, so that it uses our bespoke network configuration):
 
 
+
 export LD_LIBRARY_PATH=$ANDROID_HOME/emulator/lib64:$ANDROID_HOME/emulator/lib64/qt/lib
+
 $ANDROID_HOME/emulator/qemu/linux-x86_64/qemu-system-i386 -avd Nexus_5_API_24 -qemu -net nic,model=virtio -net tap,ifname=tap0,script=no,downscript=no
 
 
 
 The virtual device should start up and it should connect to the Internet. Now start up PTP to monitor a virtual device:
 
-./ptp_start.sh virtual
+
+
+./ptp_start.sh
+
+
 
 You'll then browse to the same starting URL in a browser on the host system, just as you did before when monitoring a physical Target Device. You'll use PTP in the same way as you did then.
 

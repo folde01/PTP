@@ -1,0 +1,11 @@
+PTP testing manual
+
+PTP unit tests can be found in the files ptp_test_*.py
+
+These have main functions can be run like this:
+
+python ./ptp_test_session_pair.py
+
+One exception is ptp_test_sniffer.py. Use this wrapper for it to run the sniffer tests: ptp_test_sniffer.sh.
+
+Before you do, you'll need to have the virtual device running, or the stop() function won't stop the sniffer, due to a bug. Following the instructions in the user manual for starting up a virtual Target Device.
