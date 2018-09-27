@@ -7,7 +7,6 @@ import time
 import pcapy
 from socket import ntohs
 from struct import unpack
-from ptp_packet_sender import Packet_Sender 
 from ptp_network import Network 
 from ptp_logger import Logger
 
@@ -50,6 +49,7 @@ class Sniffer(object):
         """Sniffer thread
         Credit: Binary Tides
         """
+        #print '_run_sniffer_thread'
         nic_name = self._sniff_iface_name
         cli_ip = self._cli_ip
         max_packet_size = 65536
@@ -65,7 +65,9 @@ class Sniffer(object):
 	dumper = cap.dump_open(self._pcap_filename)
 
 	while(True):
+            #print 'in while'
 	    packet_hdr, packet_body = cap.next()
+            #print 'yoda'
 	    if self._is_stop_packet(packet_body, self._stop_eth_addr):
 		break
 	    dumper.dump(packet_hdr,packet_body)
@@ -80,6 +82,7 @@ class Sniffer(object):
 	return b
 
     def _is_stop_packet(self, packet_body, stop_eth_addr):
+        #print '_is_stop_packet:', packet_body
         """Check if packet is stop packet
         Credit: Binary Tides
         """
@@ -91,7 +94,7 @@ class Sniffer(object):
         https://www.wireshark.org/lists/ethereal-users/200412/msg00314.html 
         """
         if self._sniff_iface_name == 'ppp0':
-            print "using ppp0"
+            #print "using ppp0"
 	    eth_header_start_byte = 2 
 
         eth_header_end_byte = eth_header_start_byte + eth_header_length
@@ -102,9 +105,11 @@ class Sniffer(object):
 	eth_addr_str = self._eth_addr(eth_header_bytes)
         #print "eth_addr_str:", eth_addr_str
 	if eth_addr_str == stop_eth_addr:
-	    print 'Stop packet received'
+	    #print 'Stop packet received'
 	    return True
-	return False
+        else:
+	    #print 'Stop not packet received'
+	    return False
 
 
 
@@ -119,7 +124,13 @@ class Sniffer(object):
         return self._pcap_filename 
 
     def _send_kill_packet(self):
-        Packet_Sender().send_kill_packet()
+        net = self._net 
+        kill_packet = Ether(dst=net.get_stop_eth())/IP(dst=net.get_stop_ip())/TCP()
+        #sendp(kill_packet, iface=net.get_nic_name())
+        nic_name = net.get_sniff_iface_name()
+	#print 'stop eth:', net.get_stop_eth(), 'ip:', net.get_stop_ip(), 'nic:', net.get_sniff_iface_name() 
+	#kill_packet.show()
+        sendp(kill_packet, iface=nic_name)
 
 
     def is_running(self):

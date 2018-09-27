@@ -1,6 +1,4 @@
-import psutil
 import ptp_network_conf
-import netifaces
 
 class Network(object):
 
@@ -10,6 +8,7 @@ class Network(object):
         self._cli_ip = None 
         self._nic_name = self._sniff_iface_name
         self._gateway_iface_name = ptp_network_conf.gateway_iface
+        self._gateway_iface_ip_addr = ptp_network_conf.gateway_iface_ip_addr
         self._sniffer_stop_eth = '00:00:00:03:02:01'
         self._sniffer_stop_ip = '10.11.12.13' 
 
@@ -27,24 +26,11 @@ class Network(object):
             if self._sniff_iface_name == 'tap0':
                 self._cli_ip = '10.0.2.15'
             else:
-                self._cli_ip = \
-                        netifaces.ifaddresses(self._sniff_iface_name)[netifaces.AF_INET][0]['addr']
+                self._cli_ip = self._gateway_iface_ip_addr 
         return self._cli_ip
 
     def get_host_ip(self):
-	nic_name = self.get_nic_name()
-        interfaces = psutil.net_if_addrs()
-        nic = ''
-
-        try:
-            nic = interfaces[nic_name]
-        except KeyError:
-            print 'Target device not configured properly. No network interface with this name:', nic_name 
-
-        for snic in nic:
-            if snic.family == 2:
-                return snic.address
-        return None
+        return self._gateway_iface_ip_addr
 
     def get_stop_eth(self):
         return self._sniffer_stop_eth 

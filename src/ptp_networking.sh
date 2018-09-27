@@ -21,6 +21,7 @@ fi
 # enable IP forwarding
 sudo sysctl -w net.ipv4.ip_forward=1 > /dev/null
 
+TAP_IFACE=tap0
 GATEWAY_IFACE=$(iw dev | grep Interface | awk '{print $2}')
 SNIFF_IFACE=""
 
@@ -40,7 +41,7 @@ function configure_networking_for_virtual_device()
 	# If we need an emulator, and running on Ubuntu 16.04 physical, with emulator TD running in QEMU, connecting via tap interface.
 	# credit to https://www.cypherpunk.at/2017/08/monitoring-android-emulator-network-traffic/
 
-	SNIFF_IFACE="tap0"
+	SNIFF_IFACE=$TAP_IFACE
 	DNS_SERVER=$(nmcli device show $GATEWAY_IFACE | grep IP4.DNS | awk '{print $2}')
 
 	sudo ip link delete $SNIFF_IFACE > /dev/null 2>&1
@@ -85,6 +86,7 @@ function configure_networking_for_virtual_device()
 
 function configure_networking_for_physical_device()
 {
+    sudo ip link delete $TAP_IFACE > /dev/null 2>&1 
 	echo "Configuring networking for physical Target Device."
 	#SNIFF_IFACE="ppp0"
 	SNIFF_IFACE=$GATEWAY_IFACE
@@ -118,7 +120,7 @@ case "$DEVICE_TYPE" in
 	"physical")
 		configure_networking_for_physical_device
 		GATEWAY_IFACE_IP_ADDR=`ip addr show $GATEWAY_IFACE | grep "inet " | awk '{print $2}' | cut -d/ -f1`
-		echo "Connect your physical Target Device's VPN to this IP address:"
+		echo "Connect your physical Target Device's VPN client to this IP address:"
 		echo $GATEWAY_IFACE_IP_ADDR
 		;;
 	"loopback")
@@ -131,6 +133,5 @@ cat /dev/null > $CONFIG_FILE
 echo "# DO NOT EDIT - CREATED DYNAMICALLY"
 echo "gateway_iface = '$GATEWAY_IFACE'"
 echo "sniff_iface = '$SNIFF_IFACE'"
+echo "gateway_iface_ip_addr = '$GATEWAY_IFACE_IP_ADDR'"
 ) >> $CONFIG_FILE
-
-
